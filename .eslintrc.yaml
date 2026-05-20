@@ -1,0 +1,63 @@
+root: true
+
+env:
+  browser: true
+  node: true
+
+globals:
+  Express: readonly
+
+ignorePatterns:
+  - 'package*.json'
+  - '**/dist/**'
+  - '**/node_modules/**'
+  - '*.config.*'
+
+plugins:
+  - vue
+  - '@typescript-eslint'
+
+overrides:
+  - files: ['*.vue']
+    parser: vue-eslint-parser
+    parserOptions:
+      parser: '@typescript-eslint/parser'
+      ecmaVersion: 2020
+      sourceType: module
+      extraFileExtensions: ['.vue']
+    extends:
+      - eslint:recommended
+      - plugin:vue/recommended
+      - plugin:@typescript-eslint/recommended
+      - prettier
+    rules:
+      vue/multi-word-component-names: off
+      vue/require-default-prop: off
+      vue/require-valid-default-prop: off
+      vue/html-indent: [warn, 4]
+      '@typescript-eslint/no-explicit-any': warn
+      no-console: off
+
+  - files: ['*.ts', '*.tsx']
+    parser: '@typescript-eslint/parser'
+    parserOptions:
+      ecmaVersion: 2020
+      sourceType: module
+    extends:
+      - eslint:recommended
+      - plugin:@typescript-eslint/recommended
+      - prettier
+    rules:
+      '@typescript-eslint/no-explicit-any': warn
+      '@typescript-eslint/no-unused-vars': [warn, { argsIgnorePattern: '^_' }]
+      no-console: off
+
+  - files: ['*.js', '*.jsx']
+    parserOptions:
+      ecmaVersion: 2020
+      sourceType: module
+    extends:
+      - eslint:recommended
+      - prettier
+    rules:
+      no-console: off

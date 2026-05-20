@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  photos Photo[]
+  audios Audio[]
+  videos Video[]
+}
+
+model Photo {
+  id         String   @id @default(cuid())
+  filename   String
+  folder     String   @default("root")
+  url        String
+  uploadedAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Audio {
+  id              String   @id @default(cuid())
+  title           String
+  artist          String   @default("")
+  filename        String
+  coverFilename   String?
+  coverUrl        String?
+  duration        Float    @default(0)
+  url             String
+  uploadedAt      DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Video {
+  id           String      @id @default(cuid())
+  title        String
+  phrase       String
+  status       VideoStatus @default(QUEUED)
+  videoUrl     String?
+  thumbnailUrl String?
+  createdAt    DateTime    @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum VideoStatus {
+  QUEUED
+  GENERATING
+  COMPLETED
+  FAILED
+}
