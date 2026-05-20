@@ -3,7 +3,7 @@
         <div>
             <h2 class="text-xl font-semibold">Create</h2>
             <p class="text-sm text-muted-foreground mt-0.5">
-                Generate atmospheric videos from your photos and audio
+                Generate atmospheric videos from your assets and audio
             </p>
         </div>
 
@@ -16,7 +16,7 @@
             <div>
                 <p class="font-medium">Video generation</p>
                 <p class="text-sm text-muted-foreground mt-1">
-                    Select audio, photos, set mood and generate phrases to create your videos
+                    Select audio, assets, set mood and generate phrases to create your videos
                 </p>
             </div>
             <Button size="sm">

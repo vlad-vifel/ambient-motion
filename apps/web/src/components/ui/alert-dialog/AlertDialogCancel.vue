@@ -22,7 +22,7 @@
         },
     );
 
-    defineEmits<{
+    const emit = defineEmits<{
         click: [MouseEvent];
     }>();
 
@@ -34,6 +34,7 @@
         v-bind="delegatedProps"
         :class="cn('', buttonVariants({ variant, size }), props.class)"
         data-slot="alert-dialog-cancel"
+        @click="emit('click', $event)"
     >
         <slot />
     </AlertDialogCancel>

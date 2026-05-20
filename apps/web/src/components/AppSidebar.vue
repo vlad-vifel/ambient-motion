@@ -140,7 +140,7 @@
     const profileDialogOpen = ref(false);
 
     const navItems = [
-        { name: 'photos', path: '/photos', label: 'Photos', icon: ImageIcon },
+        { name: 'assets', path: '/assets', label: 'Assets', icon: ImageIcon },
         { name: 'audio', path: '/audio', label: 'Audio', icon: Music },
         { name: 'videos', path: '/videos', label: 'Videos', icon: Video },
         { name: 'create', path: '/create', label: 'Create', icon: Sparkles },

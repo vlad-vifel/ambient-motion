@@ -146,7 +146,7 @@ Use:
 
 Store:
 
-- photos
+- assets (photos)
 - audio files
 - generated videos
 
@@ -175,12 +175,12 @@ Main tables:
 - passwordHash
 - createdAt
 
-### photos
+### assets
 
 - id
 - filename
-- folder
 - url
+- size
 - uploadedAt
 - userId
 
@@ -240,9 +240,9 @@ Features:
 
 ---
 
-### 2. Photos Page
+### 2. Assets Page
 
-Acts like lightweight file manager.
+Photo/image asset manager. Route: `/assets`.
 
 Inspired by:
 
@@ -251,15 +251,17 @@ Inspired by:
 
 Features:
 
-- upload photos
-- create folders
-- rename folders
-- delete folders
-- drag & drop upload
-- root folder support
-- image previews
-- grid layout
-- multi-select support
+- upload multiple photos (drag & drop or file picker)
+- list and grid view toggle
+- image previews (click to open fullscreen lightbox)
+- delete assets with confirmation
+- show filename (with extension) and file size
+
+Components:
+
+- AssetUploadDialog: multi-file upload dialog (no X button, no outside-click close)
+- AssetLightbox: fullscreen image viewer (reusable, used in explorer and upload dialog)
+- AssetsView: main page view
 
 ---
 
@@ -315,15 +317,14 @@ OR
 
 ---
 
-#### Photo Source Selection
+#### Asset Source Selection
 
-Multi-select folders.
+Multi-select assets.
 
 Options:
 
-- all photos
-- one folder
-- multiple folders
+- all assets
+- specific assets
 
 ---
 

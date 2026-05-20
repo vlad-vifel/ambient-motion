@@ -28,7 +28,7 @@
     const route = useRoute();
 
     const pageTitles: { [key: string]: string } = {
-        photos: 'Photos',
+        assets: 'Assets',
         audio: 'Audio',
         create: 'Create',
         videos: 'Videos',

@@ -4,15 +4,21 @@ import cors from 'cors';
 import express from 'express';
 import audioRoutes from './routes/audio';
 import authRoutes from './routes/auth';
-import photosRoutes from './routes/photos';
+import assetsRoutes from './routes/assets';
+import foldersRoutes from './routes/folders';
 import videosRoutes from './routes/videos';
 
 const app = express();
-const PORT = process.env.PORT ?? 3001;
+const PORT = process.env.PORT ?? 3000;
 
 app.use(
     cors({
-        origin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
+        origin: (origin, cb) => {
+            const allowed = process.env.CORS_ORIGIN?.split(',');
+            if (allowed) return cb(null, allowed.includes(origin ?? '') ? origin : false);
+            if (!origin || origin.startsWith('http://localhost')) return cb(null, origin ?? '*');
+            cb(null, false);
+        },
         credentials: true,
     }),
 );
@@ -23,7 +29,8 @@ app.get('/health', (_req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
-app.use('/api/photos', photosRoutes);
+app.use('/api/assets', assetsRoutes);
+app.use('/api/folders', foldersRoutes);
 app.use('/api/audio', audioRoutes);
 app.use('/api/videos', videosRoutes);
 

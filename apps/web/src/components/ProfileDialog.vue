@@ -1,6 +1,6 @@
 <template>
     <Dialog v-model:open="isOpen">
-        <DialogContent class="sm:max-w-md">
+        <DialogContent class="sm:max-w-md" :disable-outside-close="false">
             <DialogHeader>
                 <DialogTitle>Edit profile</DialogTitle>
             </DialogHeader>

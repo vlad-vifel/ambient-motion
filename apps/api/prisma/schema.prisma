@@ -14,20 +14,36 @@ model User {
   passwordHash String
   createdAt    DateTime @default(now())
 
-  photos Photo[]
-  audios Audio[]
-  videos Video[]
+  assets  Asset[]
+  folders Folder[]
+  audios  Audio[]
+  videos  Video[]
 }
 
-model Photo {
+model Folder {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  assets Asset[]
+}
+
+model Asset {
   id         String   @id @default(cuid())
   filename   String
-  folder     String   @default("root")
+  storageKey String   @default("")
   url        String
+  size       Int      @default(0)
   uploadedAt DateTime @default(now())
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  folderId String?
+  folder   Folder? @relation(fields: [folderId], references: [id], onDelete: Cascade)
 }
 
 model Audio {

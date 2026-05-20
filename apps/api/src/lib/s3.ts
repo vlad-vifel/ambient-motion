@@ -33,12 +33,15 @@ export async function uploadFile(
 }
 
 export async function deleteFile(key: string, userId: string): Promise<void> {
-    const command = new DeleteObjectCommand({
-        Bucket: BUCKET_NAME,
-        Key: `${userId}/${key}`,
-    });
-
-    await s3Client.send(command);
+    try {
+        const command = new DeleteObjectCommand({
+            Bucket: BUCKET_NAME,
+            Key: `${userId}/${key}`,
+        });
+        await s3Client.send(command);
+    } catch (err) {
+        console.warn(`[s3] deleteFile failed for ${userId}/${key}:`, err);
+    }
 }
 
 export function getCDNUrl(key: string, userId: string): string {

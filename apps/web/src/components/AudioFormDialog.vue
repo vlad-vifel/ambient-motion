@@ -45,9 +45,7 @@
                                 </template>
                                 <template v-else>
                                     <Music class="size-5 text-muted-foreground" />
-                                    <span class="text-[10px] text-muted-foreground"
-                                    >Drop or click</span
-                                    >
+                                    <span class="text-xs text-muted-foreground">Drop or click</span>
                                 </template>
                             </div>
 
@@ -97,7 +95,7 @@
                                 class="absolute inset-0 flex flex-col items-center justify-center gap-1.5"
                             >
                                 <ImageIcon class="size-5 text-muted-foreground" />
-                                <span class="text-[10px] text-muted-foreground">Drop or click</span>
+                                <span class="text-xs text-muted-foreground">Drop or click</span>
                             </div>
 
                             <input
@@ -110,7 +108,7 @@
 
                             <button
                                 v-if="coverPreview"
-                                class="absolute top-2 right-2 z-10 p-1.5 rounded bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors opacity-0 group-hover:opacity-100"
+                                class="absolute top-2 right-2 z-10 p-1.5 rounded group-hover:bg-muted/50 hover:bg-muted group-hover:text-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
                                 title="Remove cover"
                                 @click.stop="clearCover"
                             >

@@ -42,7 +42,7 @@
             </div>
         </div>
 
-        <div v-if="audioStore.loading" class="flex flex-col gap-2">
+        <div v-if="audioStore.loading && !audioStore.items.length" class="flex flex-col gap-2">
             <div v-for="i in 3" :key="i" class="h-14 rounded-lg bg-muted animate-pulse" />
         </div>
 
@@ -165,18 +165,18 @@
                         class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                     >
                         <button
-                            class="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                            class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                             title="Edit"
                             @click.stop="openEdit(track)"
                         >
-                            <Pencil class="size-3" />
+                            <Pencil class="size-3.5" />
                         </button>
                         <button
-                            class="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                            class="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                             title="Delete"
                             @click.stop="openDeleteDialog(track.id)"
                         >
-                            <Trash2 class="size-3" />
+                            <Trash2 class="size-3.5" />
                         </button>
                     </div>
                 </div>

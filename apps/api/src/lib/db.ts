@@ -26,11 +26,11 @@ function initializeSchema() {
     `);
 
         db.run(`
-      CREATE TABLE IF NOT EXISTS Photo (
+      CREATE TABLE IF NOT EXISTS Asset (
         id TEXT PRIMARY KEY,
         filename TEXT NOT NULL,
-        folder TEXT DEFAULT 'root',
         url TEXT NOT NULL,
+        size INTEGER DEFAULT 0,
         uploadedAt TEXT DEFAULT CURRENT_TIMESTAMP,
         userId TEXT NOT NULL,
         FOREIGN KEY (userId) REFERENCES User(id) ON DELETE CASCADE

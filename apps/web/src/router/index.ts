@@ -16,12 +16,12 @@ const router = createRouter({
             children: [
                 {
                     path: '',
-                    redirect: '/photos',
+                    redirect: '/assets',
                 },
                 {
-                    path: 'photos',
-                    name: 'photos',
-                    component: () => import('@/views/PhotosView.vue'),
+                    path: 'assets',
+                    name: 'assets',
+                    component: () => import('@/views/AssetsView.vue'),
                 },
                 {
                     path: 'audio',
