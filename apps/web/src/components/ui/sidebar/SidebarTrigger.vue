@@ -5,7 +5,8 @@
         data-slot="sidebar-trigger"
         size="icon-sm"
         variant="ghost"
-        @click="toggleSidebar">
+        @click="toggleSidebar"
+    >
         <PanelLeftIcon class="cn-rtl-flip" />
         <span class="sr-only">Toggle Sidebar</span>
     </Button>

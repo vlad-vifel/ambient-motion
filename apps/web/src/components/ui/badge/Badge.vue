@@ -3,7 +3,8 @@
         :class="cn(badgeVariants({ variant }), props.class)"
         data-slot="badge"
         :data-variant="variant"
-        v-bind="delegatedProps">
+        v-bind="delegatedProps"
+    >
         <slot />
     </Primitive>
 </template>

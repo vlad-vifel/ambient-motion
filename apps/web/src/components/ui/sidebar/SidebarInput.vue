@@ -2,7 +2,8 @@
     <Input
         :class="cn('bg-background h-8 w-full shadow-none', props.class)"
         data-sidebar="input"
-        data-slot="sidebar-input">
+        data-slot="sidebar-input"
+    >
         <slot />
     </Input>
 </template>

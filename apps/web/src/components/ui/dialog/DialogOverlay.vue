@@ -7,7 +7,8 @@
                 props.class,
             )
         "
-        data-slot="dialog-overlay">
+        data-slot="dialog-overlay"
+    >
         <slot />
     </DialogOverlay>
 </template>

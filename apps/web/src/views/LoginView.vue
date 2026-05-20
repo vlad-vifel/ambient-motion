@@ -1,59 +1,72 @@
 <template>
     <div class="min-h-screen flex items-center justify-center bg-background">
-        <div class="w-full max-w-sm space-y-6 px-4">
+        <div class="w-full max-w-sm flex flex-col gap-4 px-4">
             <div class="flex flex-col items-center gap-2 text-center">
                 <div
-                    class="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm">
+                    class="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm"
+                >
                     AM
                 </div>
                 <h1 class="text-2xl font-semibold tracking-tight">ambient motion</h1>
                 <p class="text-sm text-muted-foreground">
-                    {{ mode === 'login' ? 'Sign in to your account' : 'Create a new account' }}
+                    {{ mode === 'login' ? 'Log in to your account' : 'Create a new account' }}
                 </p>
             </div>
 
-            <div class="space-y-4">
-                <div class="space-y-2">
+            <Alert v-if="error" variant="destructive" class="flex">
+                <AlertCircleIcon class="size-3.5" />
+                <AlertDescription>{{ error }}</AlertDescription>
+            </Alert>
+
+            <div class="flex flex-col gap-4">
+                <div class="flex flex-col gap-1">
                     <label class="text-sm font-medium">Email</label>
                     <Input
                         v-model="email"
                         :disabled="loading"
-                        placeholder="you@example.com"
+                        placeholder="Email"
                         type="email"
-                        @keyup.enter="handleSubmit" />
+                        @keyup.enter="handleSubmit"
+                    />
                 </div>
-                <div class="space-y-2">
+
+                <div v-if="mode === 'register'" class="flex flex-col gap-1">
+                    <label class="text-sm font-medium">Name</label>
+                    <Input
+                        v-model="name"
+                        :disabled="loading"
+                        placeholder="Name"
+                        type="text"
+                        @keyup.enter="handleSubmit"
+                    />
+                </div>
+
+                <div class="flex flex-col gap-1">
                     <label class="text-sm font-medium">Password</label>
                     <Input
                         v-model="password"
                         :disabled="loading"
-                        placeholder="••••••••"
+                        placeholder="Password"
                         type="password"
-                        @keyup.enter="handleSubmit" />
+                        @keyup.enter="handleSubmit"
+                    />
                 </div>
 
-                <p
-                    v-if="error"
-                    class="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md">
-                    {{ error }}
-                </p>
+                <div v-if="mode === 'register'" class="flex flex-col gap-1">
+                    <label class="text-sm font-medium">Confirm Password</label>
+                    <Input
+                        v-model="passwordConfirm"
+                        :disabled="loading"
+                        placeholder="Password again"
+                        type="password"
+                        @keyup.enter="handleSubmit"
+                    />
+                </div>
 
                 <Button class="w-full" :disabled="loading" @click="handleSubmit">
                     <span v-if="loading" class="flex items-center gap-2">
-                        <svg class="size-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle
-                                class="opacity-25"
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                stroke-width="4" />
-                            <path
-                                class="opacity-75"
-                                d="M4 12a8 8 0 018-8v8H4z"
-                                fill="currentColor" />
-                        </svg>
-                        {{ mode === 'login' ? 'Signing in…' : 'Creating account…' }}
+                        <Spinner class="size-4" />
+                        {{ mode === 'login' ? 'Logging in' : 'Creating account' }}
                     </span>
                     <span v-else>{{ mode === 'login' ? 'Log in' : 'Register' }}</span>
                 </Button>
@@ -64,7 +77,8 @@
                     Don't have an account?
                     <button
                         class="underline underline-offset-4 hover:text-foreground transition-colors font-medium"
-                        @click="switchMode('register')">
+                        @click="switchMode('register')"
+                    >
                         Register
                     </button>
                 </template>
@@ -72,7 +86,8 @@
                     Already have an account?
                     <button
                         class="underline underline-offset-4 hover:text-foreground transition-colors font-medium"
-                        @click="switchMode('login')">
+                        @click="switchMode('login')"
+                    >
                         Log in
                     </button>
                 </template>
@@ -87,14 +102,19 @@
     import { useRouter } from 'vue-router';
     import { Button } from '@/components/ui/button';
     import { Input } from '@/components/ui/input';
+    import { Alert, AlertDescription } from '@/components/ui/alert';
+    import { Spinner } from '@/components/ui/spinner';
     import { useAuthStore } from '@/stores/auth';
+    import { AlertCircleIcon } from 'lucide-vue-next';
 
     const router = useRouter();
     const auth = useAuthStore();
 
     const mode = ref<'login' | 'register'>('login');
     const email = ref('');
+    const name = ref('');
     const password = ref('');
+    const passwordConfirm = ref('');
     const loading = ref(false);
     const error = ref('');
 
@@ -103,6 +123,43 @@
     function switchMode(newMode: 'login' | 'register') {
         mode.value = newMode;
         error.value = '';
+        email.value = '';
+        name.value = '';
+        password.value = '';
+        passwordConfirm.value = '';
+    }
+
+    function getErrorMessage(err: unknown): string {
+        if (!err || typeof err !== 'object') {
+            return 'Something went wrong. Please try again.';
+        }
+
+        if ('response' in err) {
+            const axiosErr = err as {
+                response?: { data?: { error?: string; message?: string } };
+                code?: string;
+            };
+            const msg = axiosErr.response?.data?.error || axiosErr.response?.data?.message;
+
+            if (msg) {
+                if (msg.toLowerCase().includes('email') && msg.toLowerCase().includes('already')) {
+                    return 'This email is already registered. Please log in or use a different email.';
+                }
+                if (
+                    msg.toLowerCase().includes('invalid') ||
+                    msg.toLowerCase().includes('incorrect')
+                ) {
+                    return 'Invalid email or password. Please try again.';
+                }
+                return msg;
+            }
+
+            if (axiosErr.code === 'ERR_NETWORK') {
+                return 'Cannot connect to server. Make sure the API is running.';
+            }
+        }
+
+        return 'Something went wrong. Please try again.';
     }
 
     async function handleSubmit() {
@@ -112,35 +169,49 @@
             error.value = 'Please enter your email.';
             return;
         }
-        if (!password.value || password.value.length < 6) {
-            error.value = 'Password must be at least 6 characters.';
-            return;
+
+        if (mode.value === 'register') {
+            if (!name.value.trim()) {
+                error.value = 'Please enter your name.';
+                return;
+            }
+            if (!password.value || password.value.length < 6) {
+                error.value = 'Password must be at least 6 characters.';
+                return;
+            }
+            if (!passwordConfirm.value) {
+                error.value = 'Please confirm your password.';
+                return;
+            }
+            if (password.value !== passwordConfirm.value) {
+                error.value = 'Passwords do not match.';
+                return;
+            }
+        } else {
+            if (!password.value || password.value.length < 6) {
+                error.value = 'Password must be at least 6 characters.';
+                return;
+            }
         }
 
         loading.value = true;
         try {
             const endpoint = mode.value === 'login' ? '/api/auth/login' : '/api/auth/register';
-            const { data } = await axios.post(`${API}${endpoint}`, {
-                email: email.value.trim(),
-                password: password.value,
-            });
+            const payload =
+                mode.value === 'login'
+                    ? { email: email.value.trim(), password: password.value }
+                    : {
+                          email: email.value.trim(),
+                          name: name.value.trim(),
+                          password: password.value,
+                      };
+
+            const { data } = await axios.post(`${API}${endpoint}`, payload);
 
             auth.setAuth(data.token, data.user);
             await router.push('/');
         } catch (err: unknown) {
-            if (err && typeof err === 'object' && 'response' in err) {
-                const axiosErr = err as { response?: { data?: { error?: string } }; code?: string };
-                const msg = axiosErr.response?.data?.error;
-                if (msg) {
-                    error.value = msg;
-                } else if (axiosErr.code === 'ERR_NETWORK') {
-                    error.value = 'Cannot connect to server. Make sure the API is running.';
-                } else {
-                    error.value = 'Something went wrong. Please try again.';
-                }
-            } else {
-                error.value = 'Something went wrong. Please try again.';
-            }
+            error.value = getErrorMessage(err);
         } finally {
             loading.value = false;
         }

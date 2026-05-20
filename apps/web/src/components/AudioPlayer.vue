@@ -1,14 +1,17 @@
 <template>
     <div
         v-if="player.track"
-        class="flex items-center gap-3 px-4 py-3 border-t border-border/50 bg-background shrink-0 select-none">
+        class="flex items-center gap-3 px-4 py-3 border-t border-border/50 bg-background shrink-0 select-none"
+    >
         <div class="flex-1 flex items-center gap-3 min-w-0 overflow-hidden">
             <div
-                class="flex size-9 rounded-md bg-muted shrink-0 items-center justify-center overflow-hidden">
+                class="flex size-9 rounded-md bg-muted shrink-0 items-center justify-center overflow-hidden"
+            >
                 <img
                     v-if="player.track.coverUrl"
                     class="size-full object-cover"
-                    :src="player.track.coverUrl" />
+                    :src="player.track.coverUrl"
+                />
                 <Music v-else class="size-4 text-muted-foreground" />
             </div>
             <div class="min-w-0">
@@ -27,12 +30,14 @@
                     class="text-muted-foreground transition-colors"
                     :class="player.hasPrev ? 'hover:text-foreground' : 'opacity-30 cursor-default'"
                     :disabled="!player.hasPrev"
-                    @click="player.prev()">
+                    @click="player.prev()"
+                >
                     <SkipBack class="size-4 fill-current" />
                 </button>
                 <button
                     class="size-7 rounded-full bg-foreground text-background flex items-center justify-center hover:scale-105 transition-transform shrink-0"
-                    @click="player.toggle()">
+                    @click="player.toggle()"
+                >
                     <Pause v-if="player.playing" class="size-3.5 fill-current" />
                     <Play v-else class="size-3.5 fill-current translate-x-px" />
                 </button>
@@ -40,14 +45,16 @@
                     class="text-muted-foreground transition-colors"
                     :class="player.hasNext ? 'hover:text-foreground' : 'opacity-30 cursor-default'"
                     :disabled="!player.hasNext"
-                    @click="player.next()">
+                    @click="player.next()"
+                >
                     <SkipForward class="size-4 fill-current" />
                 </button>
             </div>
 
             <div class="hidden sm:flex items-center gap-2 w-64 lg:w-96 xl:w-104">
                 <span
-                    class="text-[10px] text-muted-foreground tabular-nums w-8 text-right shrink-0">
+                    class="text-[10px] text-muted-foreground tabular-nums w-8 text-right shrink-0"
+                >
                     {{ formatTime(player.currentTime) }}
                 </span>
                 <Slider
@@ -62,7 +69,8 @@
                                 player.seek((v[0] / 100) * player.duration);
                             }
                         }
-                    " />
+                    "
+                />
                 <span class="text-[10px] text-muted-foreground tabular-nums w-8 shrink-0">
                     {{ formatTime(player.duration) }}
                 </span>
@@ -73,7 +81,8 @@
             <div class="hidden lg:flex items-center gap-2 max-w-28 w-full">
                 <button
                     class="text-muted-foreground hover:text-foreground transition-colors shrink-0"
-                    @click="toggleMute">
+                    @click="toggleMute"
+                >
                     <VolumeX v-if="player.volume === 0" class="size-4" />
                     <Volume1 v-else-if="player.volume < 0.5" class="size-4" />
                     <Volume2 v-else class="size-4" />
@@ -90,13 +99,15 @@
                                 player.setVolume(v[0] / 100);
                             }
                         }
-                    " />
+                    "
+                />
             </div>
 
             <div ref="volContainerRef" class="relative flex lg:hidden">
                 <button
                     class="p-1 text-muted-foreground hover:text-foreground transition-colors"
-                    @click.stop="volPopoverOpen = !volPopoverOpen">
+                    @click.stop="volPopoverOpen = !volPopoverOpen"
+                >
                     <VolumeX v-if="player.volume === 0" class="size-4" />
                     <Volume1 v-else-if="player.volume < 0.5" class="size-4" />
                     <Volume2 v-else class="size-4" />
@@ -104,7 +115,8 @@
                 <div
                     v-if="volPopoverOpen"
                     class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-3 bg-popover border border-border rounded-lg shadow-md flex flex-col items-center z-50"
-                    @click.stop>
+                    @click.stop
+                >
                     <div class="h-24">
                         <Slider
                             class="h-full"
@@ -119,7 +131,8 @@
                                         player.setVolume(v[0] / 100);
                                     }
                                 }
-                            " />
+                            "
+                        />
                     </div>
                 </div>
             </div>

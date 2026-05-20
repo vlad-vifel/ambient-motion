@@ -7,7 +7,8 @@
         data-sidebar="menu-button"
         :data-size="size"
         data-slot="sidebar-menu-button"
-        v-bind="$attrs">
+        v-bind="$attrs"
+    >
         <slot />
     </Primitive>
 </template>
@@ -34,8 +35,4 @@
         isActive: false,
         class: undefined,
     });
-
-    defineEmits<{
-        click: [MouseEvent];
-    }>();
 </script>

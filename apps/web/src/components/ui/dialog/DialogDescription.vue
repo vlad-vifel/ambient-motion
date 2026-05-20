@@ -7,7 +7,8 @@
                 props.class,
             )
         "
-        data-slot="dialog-description">
+        data-slot="dialog-description"
+    >
         <slot />
     </DialogDescription>
 </template>

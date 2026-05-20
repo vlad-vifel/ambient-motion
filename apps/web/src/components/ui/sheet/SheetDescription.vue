@@ -2,7 +2,8 @@
     <DialogDescription
         :class="cn('text-muted-foreground text-sm', props.class)"
         data-slot="sheet-description"
-        v-bind="delegatedProps">
+        v-bind="delegatedProps"
+    >
         <slot />
     </DialogDescription>
 </template>

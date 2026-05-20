@@ -7,7 +7,8 @@
             )
         "
         data-sidebar="menu-sub"
-        data-slot="sidebar-menu-sub">
+        data-slot="sidebar-menu-sub"
+    >
         <slot />
     </ul>
 </template>

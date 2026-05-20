@@ -6,7 +6,8 @@
                 props.class,
             )
         "
-        data-slot="sidebar-inset">
+        data-slot="sidebar-inset"
+    >
         <slot />
     </main>
 </template>

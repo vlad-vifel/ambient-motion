@@ -8,7 +8,7 @@ module.exports = {
     trailingComma: 'all',
     bracketSpacing: true,
     vueIndentScriptAndStyle: true,
-    bracketSameLine: true,
+    bracketSameLine: false,
     singleAttributePerLine: false,
 
     overrides: [

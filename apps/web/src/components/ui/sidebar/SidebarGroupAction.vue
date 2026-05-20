@@ -9,7 +9,8 @@
             )
         "
         data-sidebar="group-action"
-        data-slot="sidebar-group-action">
+        data-slot="sidebar-group-action"
+    >
         <slot />
     </Primitive>
 </template>

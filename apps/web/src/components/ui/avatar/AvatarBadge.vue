@@ -9,7 +9,8 @@
                 props.class,
             )
         "
-        data-slot="avatar-badge">
+        data-slot="avatar-badge"
+    >
         <slot />
     </span>
 </template>

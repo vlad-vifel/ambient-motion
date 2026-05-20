@@ -9,7 +9,8 @@
             )
         "
         data-sidebar="group-label"
-        data-slot="sidebar-group-label">
+        data-slot="sidebar-group-label"
+    >
         <slot />
     </Primitive>
 </template>

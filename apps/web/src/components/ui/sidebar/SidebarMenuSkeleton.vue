@@ -2,13 +2,15 @@
     <div
         :class="cn('h-8 gap-2 rounded-md px-2 flex items-center', props.class)"
         data-sidebar="menu-skeleton"
-        data-slot="sidebar-menu-skeleton">
+        data-slot="sidebar-menu-skeleton"
+    >
         <Skeleton v-if="showIcon" class="size-4 rounded-md" data-sidebar="menu-skeleton-icon" />
 
         <Skeleton
             class="h-4 max-w-(--skeleton-width) flex-1"
             data-sidebar="menu-skeleton-text"
-            :style="{ '--skeleton-width': width }" />
+            :style="{ '--skeleton-width': width }"
+        />
     </div>
 </template>
 

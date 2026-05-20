@@ -15,7 +15,8 @@
                 props.class,
             )
         "
-        data-slot="alert-dialog-footer">
+        data-slot="alert-dialog-footer"
+    >
         <slot />
     </div>
 </template>

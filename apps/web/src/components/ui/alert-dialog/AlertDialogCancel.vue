@@ -33,7 +33,8 @@
     <AlertDialogCancel
         v-bind="delegatedProps"
         :class="cn('', buttonVariants({ variant, size }), props.class)"
-        data-slot="alert-dialog-cancel">
+        data-slot="alert-dialog-cancel"
+    >
         <slot />
     </AlertDialogCancel>
 </template>

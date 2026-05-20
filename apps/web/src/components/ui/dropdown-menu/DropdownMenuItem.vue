@@ -1,24 +1,8 @@
-<template>
-    <DropdownMenuItem
-        v-bind="forwardedProps"
-        :class="
-            cn(
-                'focus:bg-accent focus:text-accent-foreground data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/10 dark:data-[variant=destructive]:focus:bg-destructive/20 data-[variant=destructive]:focus:text-destructive data-[variant=destructive]:*:[svg]:text-destructive not-data-[variant=destructive]:focus:**:text-accent-foreground gap-2 rounded-sm px-2 py-1.5 text-sm data-inset:pl-8 [&_svg:not([class*=size-])]:size-4 group/dropdown-menu-item relative flex cursor-default items-center outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0',
-                props.class,
-            )
-        "
-        :data-inset="inset ? '' : undefined"
-        data-slot="dropdown-menu-item"
-        :data-variant="variant">
-        <slot />
-    </DropdownMenuItem>
-</template>
-
 <script setup lang="ts">
-    import { reactiveOmit } from '@vueuse/core';
-    import type { DropdownMenuItemEmits, DropdownMenuItemProps } from 'reka-ui';
-    import { DropdownMenuItem, useForwardPropsEmits } from 'reka-ui';
+    import type { DropdownMenuItemProps } from 'reka-ui';
     import type { HTMLAttributes } from 'vue';
+    import { reactiveOmit } from '@vueuse/core';
+    import { DropdownMenuItem, useForwardProps } from 'reka-ui';
     import { cn } from '@/lib/utils';
 
     const props = withDefaults(
@@ -30,15 +14,28 @@
             }
         >(),
         {
-            class: undefined,
-            inset: false,
             variant: 'default',
         },
     );
 
-    const emits = defineEmits<DropdownMenuItemEmits>();
-
     const delegatedProps = reactiveOmit(props, 'inset', 'variant', 'class');
 
-    const forwardedProps = useForwardPropsEmits(delegatedProps, emits);
+    const forwardedProps = useForwardProps(delegatedProps);
 </script>
+
+<template>
+    <DropdownMenuItem
+        data-slot="dropdown-menu-item"
+        :data-inset="inset ? '' : undefined"
+        :data-variant="variant"
+        v-bind="forwardedProps"
+        :class="
+            cn(
+                'focus:bg-accent focus:text-accent-foreground data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/10 dark:data-[variant=destructive]:focus:bg-destructive/20 data-[variant=destructive]:focus:text-destructive data-[variant=destructive]:*:[svg]:text-destructive not-data-[variant=destructive]:focus:**:text-accent-foreground gap-2 rounded-sm px-2 py-1.5 text-sm data-inset:pl-8 [&_svg:not([class*=size-])]:size-4 group/dropdown-menu-item relative flex cursor-default items-center outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0',
+                props.class,
+            )
+        "
+    >
+        <slot />
+    </DropdownMenuItem>
+</template>

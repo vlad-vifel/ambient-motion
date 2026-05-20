@@ -8,7 +8,8 @@
             )
         "
         data-slot="sidebar"
-        v-bind="$attrs">
+        v-bind="$attrs"
+    >
         <slot />
     </div>
 
@@ -21,7 +22,8 @@
             :side="side"
             :style="{
                 '--sidebar-width': SIDEBAR_WIDTH_MOBILE,
-            }">
+            }"
+        >
             <SheetHeader class="sr-only">
                 <SheetTitle>Sidebar</SheetTitle>
                 <SheetDescription>Displays the mobile sidebar.</SheetDescription>
@@ -39,7 +41,8 @@
         :data-side="side"
         data-slot="sidebar"
         :data-state="state"
-        :data-variant="variant">
+        :data-variant="variant"
+    >
         <div
             :class="
                 cn(
@@ -51,7 +54,8 @@
                         : 'group-data-[collapsible=icon]:w-(--sidebar-width-icon)',
                 )
             "
-            data-slot="sidebar-gap" />
+            data-slot="sidebar-gap"
+        />
         <div
             :class="
                 cn(
@@ -67,11 +71,13 @@
             "
             :data-side="side"
             data-slot="sidebar-container"
-            v-bind="$attrs">
+            v-bind="$attrs"
+        >
             <div
                 class="bg-sidebar group-data-[variant=floating]:ring-sidebar-border group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:shadow-sm group-data-[variant=floating]:ring-1 flex size-full flex-col"
                 data-sidebar="sidebar"
-                data-slot="sidebar-inner">
+                data-slot="sidebar-inner"
+            >
                 <slot />
             </div>
         </div>

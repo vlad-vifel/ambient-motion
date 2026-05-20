@@ -7,7 +7,8 @@
             )
         "
         data-sidebar="content"
-        data-slot="sidebar-content">
+        data-slot="sidebar-content"
+    >
         <slot />
     </div>
 </template>

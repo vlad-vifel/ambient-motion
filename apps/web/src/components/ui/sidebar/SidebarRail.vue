@@ -16,7 +16,8 @@
         data-slot="sidebar-rail"
         :tabindex="-1"
         title="Toggle Sidebar"
-        @click="toggleSidebar">
+        @click="toggleSidebar"
+    >
         <slot />
     </button>
 </template>

@@ -6,7 +6,8 @@
                 props.class,
             )
         "
-        data-slot="avatar-group">
+        data-slot="avatar-group"
+    >
         <slot />
     </div>
 </template>

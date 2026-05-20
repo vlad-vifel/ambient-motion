@@ -2,7 +2,8 @@
     <DialogTitle
         v-bind="forwardedProps"
         :class="cn('leading-none font-medium cn-font-heading', props.class)"
-        data-slot="dialog-title">
+        data-slot="dialog-title"
+    >
         <slot />
     </DialogTitle>
 </template>

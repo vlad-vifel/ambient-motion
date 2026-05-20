@@ -2,7 +2,8 @@
     <Separator
         :class="cn('bg-sidebar-border mx-2 w-auto', props.class)"
         data-sidebar="separator"
-        data-slot="sidebar-separator">
+        data-slot="sidebar-separator"
+    >
         <slot />
     </Separator>
 </template>

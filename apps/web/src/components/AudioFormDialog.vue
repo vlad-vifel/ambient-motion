@@ -3,7 +3,8 @@
         <DialogContent
             class="max-w-xl p-0 gap-0 overflow-hidden"
             :disable-outside-close="true"
-            :show-close-button="false">
+            :show-close-button="false"
+        >
             <DialogHeader class="px-6 pt-6 pb-4">
                 <DialogTitle>{{ editTarget ? 'Edit audio' : 'Upload audio' }}</DialogTitle>
             </DialogHeader>
@@ -27,9 +28,11 @@
                             @click="!audioFile && audioInput?.click()"
                             @dragleave="audioDragging = false"
                             @dragover.prevent="!audioFile && (audioDragging = true)"
-                            @drop.prevent="!audioFile && onAudioDrop($event)">
+                            @drop.prevent="!audioFile && onAudioDrop($event)"
+                        >
                             <div
-                                class="absolute inset-0 flex flex-col items-center justify-center gap-2 px-8 text-center">
+                                class="absolute inset-0 flex flex-col items-center justify-center gap-2 px-8 text-center"
+                            >
                                 <template v-if="audioFile">
                                     <Music class="size-5 text-primary shrink-0" />
                                     <span
@@ -53,13 +56,15 @@
                                 accept="audio/*"
                                 class="hidden"
                                 type="file"
-                                @change="onAudioChange" />
+                                @change="onAudioChange"
+                            />
 
                             <button
                                 v-if="audioFile"
                                 class="absolute top-2 right-2 z-10 p-1.5 rounded bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors opacity-0 group-hover:opacity-100"
                                 title="Remove audio"
-                                @click.stop="clearAudio">
+                                @click.stop="clearAudio"
+                            >
                                 <Trash2 class="size-3.5" />
                             </button>
                         </div>
@@ -80,14 +85,17 @@
                             @click="!coverPreview && coverInput?.click()"
                             @dragleave="coverDragging = false"
                             @dragover.prevent="!coverPreview && (coverDragging = true)"
-                            @drop.prevent="!coverPreview && onCoverDrop($event)">
+                            @drop.prevent="!coverPreview && onCoverDrop($event)"
+                        >
                             <img
                                 v-if="coverPreview"
                                 class="absolute inset-0 size-full object-cover"
-                                :src="coverPreview" />
+                                :src="coverPreview"
+                            />
                             <div
                                 v-else
-                                class="absolute inset-0 flex flex-col items-center justify-center gap-1.5">
+                                class="absolute inset-0 flex flex-col items-center justify-center gap-1.5"
+                            >
                                 <ImageIcon class="size-5 text-muted-foreground" />
                                 <span class="text-[10px] text-muted-foreground">Drop or click</span>
                             </div>
@@ -97,13 +105,15 @@
                                 accept="image/*"
                                 class="hidden"
                                 type="file"
-                                @change="onCoverChange" />
+                                @change="onCoverChange"
+                            />
 
                             <button
                                 v-if="coverPreview"
                                 class="absolute top-2 right-2 z-10 p-1.5 rounded bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors opacity-0 group-hover:opacity-100"
                                 title="Remove cover"
-                                @click.stop="clearCover">
+                                @click.stop="clearCover"
+                            >
                                 <Trash2 class="size-3.5" />
                             </button>
                         </div>

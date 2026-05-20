@@ -2,7 +2,8 @@
     <AvatarImage
         v-bind="props"
         class="rounded-full aspect-square size-full object-cover"
-        data-slot="avatar-image">
+        data-slot="avatar-image"
+    >
         <slot />
     </AvatarImage>
 </template>

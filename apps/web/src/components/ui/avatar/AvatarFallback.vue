@@ -7,7 +7,8 @@
                 props.class,
             )
         "
-        data-slot="avatar-fallback">
+        data-slot="avatar-fallback"
+    >
         <slot />
     </AvatarFallback>
 </template>

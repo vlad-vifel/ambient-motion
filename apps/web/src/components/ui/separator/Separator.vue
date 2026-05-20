@@ -7,7 +7,8 @@
                 props.class,
             )
         "
-        data-slot="separator" />
+        data-slot="separator"
+    />
 </template>
 
 <script setup lang="ts">

@@ -2,7 +2,8 @@
     <DialogTitle
         :class="cn('text-foreground font-medium cn-font-heading', props.class)"
         data-slot="sheet-title"
-        v-bind="delegatedProps">
+        v-bind="delegatedProps"
+    >
         <slot />
     </DialogTitle>
 </template>

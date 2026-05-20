@@ -19,7 +19,8 @@
                 props.class,
             )
         "
-        data-slot="alert-dialog-title">
+        data-slot="alert-dialog-title"
+    >
         <slot />
     </AlertDialogTitle>
 </template>

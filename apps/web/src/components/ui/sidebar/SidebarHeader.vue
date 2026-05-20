@@ -2,7 +2,8 @@
     <div
         :class="cn('gap-2 p-2 flex flex-col', props.class)"
         data-sidebar="header"
-        data-slot="sidebar-header">
+        data-slot="sidebar-header"
+    >
         <slot />
     </div>
 </template>

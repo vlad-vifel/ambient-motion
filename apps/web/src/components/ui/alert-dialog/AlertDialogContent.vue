@@ -37,7 +37,8 @@
     <AlertDialogPortal>
         <AlertDialogOverlay
             class="data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs fixed inset-0 z-50"
-            data-slot="alert-dialog-overlay" />
+            data-slot="alert-dialog-overlay"
+        />
         <AlertDialogContent
             v-bind="{ ...$attrs, ...forwarded }"
             :class="
@@ -47,7 +48,8 @@
                 )
             "
             :data-size="size"
-            data-slot="alert-dialog-content">
+            data-slot="alert-dialog-content"
+        >
             <slot />
         </AlertDialogContent>
     </AlertDialogPortal>

@@ -7,7 +7,8 @@
             )
         "
         data-slot="sheet-overlay"
-        v-bind="delegatedProps">
+        v-bind="delegatedProps"
+    >
         <slot />
     </DialogOverlay>
 </template>

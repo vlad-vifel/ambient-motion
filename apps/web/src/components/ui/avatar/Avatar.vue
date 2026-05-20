@@ -2,7 +2,8 @@
     <AvatarRoot
         :class="cn(avatarVariants({ size }), props.class)"
         :data-size="size ?? 'default'"
-        data-slot="avatar">
+        data-slot="avatar"
+    >
         <slot />
     </AvatarRoot>
 </template>

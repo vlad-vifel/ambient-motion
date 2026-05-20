@@ -2,7 +2,8 @@
     <div
         :class="cn('text-sm w-full', props.class)"
         data-sidebar="group-content"
-        data-slot="sidebar-group-content">
+        data-slot="sidebar-group-content"
+    >
         <slot />
     </div>
 </template>

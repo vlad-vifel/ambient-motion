@@ -5,6 +5,7 @@ import { computed, ref } from 'vue';
 interface User {
     id: string;
     email: string;
+    name: string;
     createdAt: string;
 }
 
@@ -34,5 +35,17 @@ export const useAuthStore = defineStore('auth', () => {
         delete axios.defaults.headers.common['Authorization'];
     }
 
-    return { token, user, isAuthenticated, setAuth, logout };
+    async function updateProfile(name: string) {
+        const response = await axios.patch('/api/auth/profile', { name });
+        const updatedUser = response.data.user;
+        user.value = updatedUser;
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        return updatedUser;
+    }
+
+    async function updatePassword(oldPassword: string, newPassword: string) {
+        await axios.patch('/api/auth/password', { oldPassword, newPassword });
+    }
+
+    return { token, user, isAuthenticated, setAuth, logout, updateProfile, updatePassword };
 });

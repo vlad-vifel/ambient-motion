@@ -11,7 +11,8 @@
             "
             data-slot="dialog-content"
             @interact-outside="handleInteractOutside"
-            @pointer-down-outside="handlePointerDownOutside">
+            @pointer-down-outside="handlePointerDownOutside"
+        >
             <slot />
 
             <DialogClose v-if="showCloseButton" as-child data-slot="dialog-close">

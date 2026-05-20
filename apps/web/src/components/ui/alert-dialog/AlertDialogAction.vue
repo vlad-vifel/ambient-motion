@@ -33,7 +33,8 @@
     <AlertDialogAction
         v-bind="delegatedProps"
         :class="cn('', buttonVariants({ variant, size }), props.class)"
-        data-slot="alert-dialog-action">
+        data-slot="alert-dialog-action"
+    >
         <slot />
     </AlertDialogAction>
 </template>

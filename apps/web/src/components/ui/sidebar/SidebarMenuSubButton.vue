@@ -11,7 +11,8 @@
         :data-active="isActive ? '' : undefined"
         data-sidebar="menu-sub-button"
         :data-size="size"
-        data-slot="sidebar-menu-sub-button">
+        data-slot="sidebar-menu-sub-button"
+    >
         <slot />
     </Primitive>
 </template>

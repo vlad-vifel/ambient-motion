@@ -2,7 +2,8 @@
     <div
         :class="cn('gap-2 p-2 flex flex-col', props.class)"
         data-sidebar="footer"
-        data-slot="sidebar-footer">
+        data-slot="sidebar-footer"
+    >
         <slot />
     </div>
 </template>

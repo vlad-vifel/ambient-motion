@@ -10,7 +10,8 @@
             "
             :data-side="side"
             data-slot="sheet-content"
-            v-bind="{ ...$attrs, ...forwarded }">
+            v-bind="{ ...$attrs, ...forwarded }"
+        >
             <slot />
 
             <DialogClose v-if="showCloseButton" as-child data-slot="sheet-close">

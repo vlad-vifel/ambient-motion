@@ -11,7 +11,8 @@
             )
         "
         data-sidebar="menu-action"
-        data-slot="sidebar-menu-action">
+        data-slot="sidebar-menu-action"
+    >
         <slot />
     </Primitive>
 </template>

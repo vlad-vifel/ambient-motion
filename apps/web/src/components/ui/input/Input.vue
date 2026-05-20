@@ -7,7 +7,8 @@
                 props.class,
             )
         "
-        data-slot="input" />
+        data-slot="input"
+    />
 </template>
 
 <script setup lang="ts">

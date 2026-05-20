@@ -9,17 +9,20 @@
         "
         data-slot="slider"
         :data-vertical="props.orientation === 'vertical' ? '' : undefined"
-        v-bind="forwarded">
+        v-bind="forwarded"
+    >
         <SliderTrack
             class="bg-muted rounded-full data-horizontal:h-1 data-vertical:w-1 relative grow data-horizontal:w-full data-vertical:h-full"
             :data-horizontal="props.orientation !== 'vertical' ? '' : undefined"
             data-slot="slider-track"
-            :data-vertical="props.orientation === 'vertical' ? '' : undefined">
+            :data-vertical="props.orientation === 'vertical' ? '' : undefined"
+        >
             <SliderRange
                 class="bg-primary absolute select-none rounded-full data-horizontal:h-full data-vertical:w-full"
                 :data-horizontal="props.orientation !== 'vertical' ? '' : undefined"
                 data-slot="slider-range"
-                :data-vertical="props.orientation === 'vertical' ? '' : undefined" />
+                :data-vertical="props.orientation === 'vertical' ? '' : undefined"
+            />
         </SliderTrack>
 
         <SliderThumb
@@ -27,7 +30,8 @@
             :key="key"
             class="border-primary ring-ring/50 size-3 rounded-full border bg-white shadow-sm transition-[color,box-shadow,opacity] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden block shrink-0 select-none disabled:pointer-events-none disabled:opacity-50 opacity-0 group-hover:opacity-100"
             data-slot="slider-thumb"
-            :data-vertical="props.orientation === 'vertical' ? '' : undefined" />
+            :data-vertical="props.orientation === 'vertical' ? '' : undefined"
+        />
     </SliderRoot>
 </template>
 
