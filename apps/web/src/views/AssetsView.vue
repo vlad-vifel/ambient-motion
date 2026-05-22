@@ -67,183 +67,175 @@
             </div>
         </div>
 
-        <div v-if="initialLoading" class="flex flex-col gap-2">
-            <div v-for="i in 4" :key="i" class="h-14 rounded-lg bg-muted animate-pulse" />
+        <div
+            v-if="!assetsStore.items.length"
+            class="rounded-xl border border-border/50 bg-card p-12 flex flex-col items-center justify-center gap-4 text-center min-h-64"
+        >
+            <div class="size-12 rounded-full bg-muted flex items-center justify-center">
+                <component
+                    :is="currentFolder ? ImageIcon : FolderOpen"
+                    class="size-6 text-muted-foreground"
+                />
+            </div>
+            <div>
+                <p class="font-medium">
+                    {{ currentFolder ? 'No assets in this folder' : 'No assets yet' }}
+                </p>
+                <p class="text-sm text-muted-foreground mt-1">
+                    {{
+                        currentFolder
+                            ? 'Upload assets to this folder'
+                            : 'Create folders or upload assets to get started'
+                    }}
+                </p>
+            </div>
         </div>
 
-        <template v-else>
+        <div v-else-if="viewMode === 'list'" class="flex flex-col gap-2">
             <div
-                v-if="isEmpty && !isLoading"
-                class="rounded-xl border border-border/50 bg-card p-12 flex flex-col items-center justify-center gap-4 text-center min-h-64"
+                v-for="folder in visibleFolders"
+                :key="folder.id"
+                class="group flex items-center gap-3 px-4 py-3 rounded-lg border border-transparent bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer"
+                @click="enterFolder(folder)"
             >
-                <div class="size-12 rounded-full bg-muted flex items-center justify-center">
-                    <component
-                        :is="currentFolder ? ImageIcon : FolderOpen"
-                        class="size-6 text-muted-foreground"
-                    />
+                <div
+                    class="size-9 rounded-md bg-muted/60 shrink-0 flex items-center justify-center"
+                >
+                    <Folder class="size-4 text-muted-foreground" />
                 </div>
-                <div>
-                    <p class="font-medium">
-                        {{ currentFolder ? 'No assets in this folder' : 'No assets yet' }}
-                    </p>
-                    <p class="text-sm text-muted-foreground mt-1">
-                        {{
-                            currentFolder
-                                ? 'Upload assets to this folder'
-                                : 'Create folders or upload assets to get started'
-                        }}
-                    </p>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium truncate">{{ folder.name }}</p>
+                </div>
+                <div
+                    class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                >
+                    <button
+                        class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                        title="Rename"
+                        @click.stop="openFolderForm(folder)"
+                    >
+                        <Pencil class="size-3.5" />
+                    </button>
+                    <button
+                        class="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                        title="Delete"
+                        @click.stop="openDeleteFolderDialog(folder.id)"
+                    >
+                        <Trash2 class="size-3.5" />
+                    </button>
                 </div>
             </div>
 
-            <template v-else-if="viewMode === 'list'">
-                <div class="flex flex-col gap-2">
-                    <div
-                        v-for="folder in visibleFolders"
-                        :key="folder.id"
-                        class="group flex items-center gap-3 px-4 py-3 rounded-lg border border-transparent bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer"
-                        @click="enterFolder(folder)"
-                    >
-                        <div
-                            class="size-9 rounded-md bg-muted/60 shrink-0 flex items-center justify-center"
-                        >
-                            <Folder class="size-4 text-muted-foreground" />
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium truncate">{{ folder.name }}</p>
-                        </div>
-                        <div
-                            class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                        >
-                            <button
-                                class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                                title="Rename"
-                                @click.stop="openFolderForm(folder)"
-                            >
-                                <Pencil class="size-3.5" />
-                            </button>
-                            <button
-                                class="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                                title="Delete"
-                                @click.stop="openDeleteFolderDialog(folder.id)"
-                            >
-                                <Trash2 class="size-3.5" />
-                            </button>
-                        </div>
-                    </div>
-
-                    <div
-                        v-for="asset in assetsStore.items"
-                        :key="asset.id"
-                        class="group flex items-center gap-3 px-4 py-3 rounded-lg border border-transparent bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer"
-                        @click="openLightbox(asset)"
-                    >
-                        <div class="size-9 rounded-md bg-muted shrink-0 overflow-hidden">
-                            <img :src="asset.url" class="size-full object-cover" />
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium truncate">{{ asset.filename }}</p>
-                        </div>
-                        <span class="text-xs text-muted-foreground shrink-0">{{
-                            formatSize(asset.size)
-                        }}</span>
-                        <div
-                            class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2"
-                        >
-                            <button
-                                class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                                title="Rename"
-                                @click.stop="openAssetEdit(asset)"
-                            >
-                                <Pencil class="size-3.5" />
-                            </button>
-                            <button
-                                class="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                                title="Delete"
-                                @click.stop="openDeleteAssetDialog(asset.id)"
-                            >
-                                <Trash2 class="size-3.5" />
-                            </button>
-                        </div>
-                    </div>
+            <div
+                v-for="asset in assetsStore.items"
+                :key="asset.id"
+                class="group flex items-center gap-3 px-4 py-3 rounded-lg border border-transparent bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer"
+                @click="openLightbox(asset)"
+            >
+                <div class="size-9 rounded-md bg-muted shrink-0 overflow-hidden">
+                    <img :src="asset.url" class="size-full object-cover" />
                 </div>
-            </template>
-
-            <template v-else>
-                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                    <div
-                        v-for="folder in visibleFolders"
-                        :key="folder.id"
-                        class="group relative flex flex-col items-center justify-center aspect-square rounded-lg bg-muted/30 border border-border/50 hover:bg-muted/50 transition-colors cursor-pointer gap-2 p-3"
-                        @click="enterFolder(folder)"
-                    >
-                        <Folder class="size-8 text-muted-foreground" />
-                        <p class="text-xs font-medium truncate w-full text-center">
-                            {{ folder.name }}
-                        </p>
-                        <div
-                            class="absolute top-2 right-2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                            <button
-                                class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                                title="Rename"
-                                @click.stop="openFolderForm(folder)"
-                            >
-                                <Pencil class="size-3.5" />
-                            </button>
-                            <button
-                                class="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                                title="Delete"
-                                @click.stop="openDeleteFolderDialog(folder.id)"
-                            >
-                                <Trash2 class="size-3.5" />
-                            </button>
-                        </div>
-                    </div>
-
-                    <div
-                        v-for="asset in assetsStore.items"
-                        :key="asset.id"
-                        class="group relative aspect-square rounded-lg overflow-hidden bg-muted cursor-pointer"
-                        @click="openLightbox(asset)"
-                    >
-                        <img :src="asset.url" class="size-full object-cover bg-muted" />
-                        <div
-                            class="absolute inset-0 flex flex-col justify-end p-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                            style="
-                                background: linear-gradient(
-                                    to top,
-                                    rgba(0, 0, 0, 0.75),
-                                    transparent 35%
-                                );
-                            "
-                        >
-                            <p class="text-white text-xs truncate leading-snug">
-                                {{ asset.filename }}
-                            </p>
-                        </div>
-                        <div
-                            class="absolute top-2 right-2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                            <button
-                                class="p-1.5 rounded group-hover:bg-muted/50 hover:bg-muted text-foreground transition-colors"
-                                title="Rename"
-                                @click.stop="openAssetEdit(asset)"
-                            >
-                                <Pencil class="size-3.5" />
-                            </button>
-                            <button
-                                class="p-1.5 rounded group-hover:bg-muted/50 hover:bg-muted group-hover:text-foreground hover:text-destructive transition-colors"
-                                title="Delete"
-                                @click.stop="openDeleteAssetDialog(asset.id)"
-                            >
-                                <Trash2 class="size-3.5" />
-                            </button>
-                        </div>
-                    </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium truncate">{{ asset.filename }}</p>
                 </div>
-            </template>
-        </template>
+                <div class="flex items-center gap-2 shrink-0">
+                    <Badge v-if="usedAssetIds.has(asset.id)" variant="secondary" class="text-xs">
+                        used
+                    </Badge>
+                    <span class="text-xs text-muted-foreground">{{ formatSize(asset.size) }}</span>
+                </div>
+                <div
+                    class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2"
+                >
+                    <button
+                        class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                        title="Rename"
+                        @click.stop="openAssetEdit(asset)"
+                    >
+                        <Pencil class="size-3.5" />
+                    </button>
+                    <button
+                        class="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                        title="Delete"
+                        @click.stop="openDeleteAssetDialog(asset.id)"
+                    >
+                        <Trash2 class="size-3.5" />
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div v-else class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+            <div
+                v-for="folder in visibleFolders"
+                :key="folder.id"
+                class="group relative flex flex-col items-center justify-center aspect-square rounded-lg bg-muted/30 border border-border/50 hover:bg-muted/50 transition-colors cursor-pointer gap-2 p-3"
+                @click="enterFolder(folder)"
+            >
+                <Folder class="size-8 text-muted-foreground" />
+                <p class="text-xs font-medium truncate w-full text-center">
+                    {{ folder.name }}
+                </p>
+                <div
+                    class="absolute top-2 right-2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                    <button
+                        class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                        title="Rename"
+                        @click.stop="openFolderForm(folder)"
+                    >
+                        <Pencil class="size-3.5" />
+                    </button>
+                    <button
+                        class="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                        title="Delete"
+                        @click.stop="openDeleteFolderDialog(folder.id)"
+                    >
+                        <Trash2 class="size-3.5" />
+                    </button>
+                </div>
+            </div>
+
+            <div
+                v-for="asset in assetsStore.items"
+                :key="asset.id"
+                class="group relative aspect-square rounded-lg overflow-hidden bg-muted cursor-pointer"
+                @click="openLightbox(asset)"
+            >
+                <img :src="asset.url" class="size-full object-cover bg-muted" />
+                <div
+                    class="absolute inset-0 flex flex-col justify-end p-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                    style="
+                        background: linear-gradient(to top, rgba(0, 0, 0, 0.75), transparent 35%);
+                    "
+                >
+                    <p class="text-white text-xs truncate leading-snug">
+                        {{ asset.filename }}
+                    </p>
+                </div>
+                <div v-if="usedAssetIds.has(asset.id)" class="absolute top-2 left-2">
+                    <Badge variant="secondary" class="text-xs">used</Badge>
+                </div>
+                <div
+                    class="absolute top-2 right-2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                    <button
+                        class="p-1.5 rounded group-hover:bg-muted/50 hover:bg-muted text-foreground transition-colors"
+                        title="Rename"
+                        @click.stop="openAssetEdit(asset)"
+                    >
+                        <Pencil class="size-3.5" />
+                    </button>
+                    <button
+                        class="p-1.5 rounded group-hover:bg-muted/50 hover:bg-muted group-hover:text-foreground hover:text-destructive transition-colors"
+                        title="Delete"
+                        @click.stop="openDeleteAssetDialog(asset.id)"
+                    >
+                        <Trash2 class="size-3.5" />
+                    </button>
+                </div>
+            </div>
+        </div>
 
         <AssetUploadDialog
             v-model:open="uploadDialogOpen"
@@ -259,6 +251,7 @@
             :open="lightboxOpen"
             :src="lightboxSrc"
             :filename="lightboxFilename"
+            :is-used="lightboxAssetId ? usedAssetIds.has(lightboxAssetId) : false"
             @update:open="lightboxOpen = $event"
         />
 
@@ -317,12 +310,15 @@
         AlertDialogHeader,
         AlertDialogTitle,
     } from '@/components/ui/alert-dialog';
+    import { Badge } from '@/components/ui/badge';
     import { Button } from '@/components/ui/button';
     import { type Asset, useAssetsStore } from '@/stores/assets';
     import { type Folder as FolderType, useFoldersStore } from '@/stores/folders';
+    import { useVideosStore } from '@/stores/videos';
 
     const assetsStore = useAssetsStore();
     const foldersStore = useFoldersStore();
+    const videosStore = useVideosStore();
 
     const viewMode = ref<'list' | 'grid'>('list');
     const currentFolder = ref<FolderType | null>(null);
@@ -336,6 +332,7 @@
     const lightboxOpen = ref(false);
     const lightboxSrc = ref<string | null>(null);
     const lightboxFilename = ref('');
+    const lightboxAssetId = ref<string | null>(null);
 
     const deleteDialogOpen = ref(false);
     const deleteTarget = ref<{ type: 'asset' | 'folder'; id: string } | null>(null);
@@ -345,13 +342,17 @@
 
     const isLoading = computed(() => assetsStore.loading || foldersStore.loading);
 
-    const isEmpty = computed(
-        () => assetsStore.items.length === 0 && visibleFolders.value.length === 0,
-    );
+    const usedAssetIds = computed(() => {
+        return new Set(videosStore.items.filter((v) => v.assetId).map((v) => v.assetId!));
+    });
 
     onMounted(async () => {
         try {
-            await Promise.all([foldersStore.fetchAll(), assetsStore.fetchAll(null)]);
+            await Promise.all([
+                foldersStore.fetchAll(),
+                assetsStore.fetchAll(null),
+                videosStore.fetchAll(),
+            ]);
         } finally {
             initialLoading.value = false;
         }
@@ -382,6 +383,7 @@
     function openLightbox(asset: Asset) {
         lightboxSrc.value = asset.url;
         lightboxFilename.value = asset.filename;
+        lightboxAssetId.value = asset.id;
         lightboxOpen.value = true;
     }
 

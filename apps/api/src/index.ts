@@ -7,6 +7,8 @@ import authRoutes from './routes/auth';
 import assetsRoutes from './routes/assets';
 import foldersRoutes from './routes/folders';
 import videosRoutes from './routes/videos';
+import sessionsRoutes from './routes/sessions';
+import { startWorker } from './generator/worker';
 
 const app = express();
 const PORT = process.env.PORT ?? 3000;
@@ -33,6 +35,7 @@ app.use('/api/assets', assetsRoutes);
 app.use('/api/folders', foldersRoutes);
 app.use('/api/audio', audioRoutes);
 app.use('/api/videos', videosRoutes);
+app.use('/api/sessions', sessionsRoutes);
 
 app.use((_req, res) => {
     res.status(404).json({ error: 'Not found' });
@@ -40,6 +43,7 @@ app.use((_req, res) => {
 
 app.listen(PORT, () => {
     console.log(`ambient motion API running on http://localhost:${PORT}`);
+    startWorker().catch(console.error);
 });
 
 export default app;

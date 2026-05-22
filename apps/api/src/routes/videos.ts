@@ -2,42 +2,92 @@ import { Response, Router } from 'express';
 import { prisma } from '../lib/prisma';
 import { deleteFile, generateSignedUrl } from '../lib/s3';
 import { AuthRequest, requireAuth } from '../middleware/auth';
+import { VIDEO_PRESETS } from '../remotion/presets';
 
 const router = Router();
 router.use(requireAuth);
+
+function applySignedUrls(
+    video: {
+        status: string;
+        videoUrl: string | null;
+        thumbnailUrl: string | null;
+        [key: string]: unknown;
+    },
+    userId: string,
+) {
+    return {
+        ...video,
+        videoUrl:
+            video.videoUrl && video.status === 'COMPLETED'
+                ? generateSignedUrl(video.videoUrl, userId, 24 * 3600)
+                : null,
+        thumbnailUrl:
+            video.thumbnailUrl && video.status === 'COMPLETED'
+                ? generateSignedUrl(video.thumbnailUrl, userId, 24 * 3600)
+                : null,
+    };
+}
+
+router.get('/presets', (_req, res: Response) => {
+    const presets = Object.entries(VIDEO_PRESETS).map(([id, p]) => ({
+        id,
+        label: id === 'square_1080' ? '1:1 Square (1080×1080)' : '9:16 Vertical (1080×1920)',
+        ...p,
+    }));
+    res.json(presets);
+});
 
 router.get('/', async (req: AuthRequest, res: Response) => {
     try {
         const videos = await prisma.video.findMany({
             where: { userId: req.userId! },
             orderBy: { createdAt: 'desc' },
+            include: {
+                session: { select: { id: true, name: true } },
+            },
         });
 
-        const videosWithSignedUrls = videos.map((video) => ({
-            ...video,
-            videoUrl:
-                video.videoUrl && video.status === 'COMPLETED'
-                    ? generateSignedUrl(video.videoUrl, req.userId!, 24 * 3600)
-                    : null,
-        }));
-
-        res.json(videosWithSignedUrls);
+        res.json(videos.map((v) => applySignedUrls(v, req.userId!)));
     } catch {
         res.status(500).json({ error: 'Internal server error' });
     }
 });
 
-router.post('/', async (req: AuthRequest, res: Response) => {
+router.get('/:id', async (req: AuthRequest, res: Response) => {
     try {
-        const { title, phrase } = req.body as { title: string; phrase: string };
-        if (!title || !phrase) {
-            res.status(400).json({ error: 'Title and phrase are required' });
+        const video = await prisma.video.findFirst({
+            where: { id: String(req.params.id), userId: req.userId! },
+            include: {
+                session: { select: { id: true, name: true } },
+            },
+        });
+
+        if (!video) {
+            res.status(404).json({ error: 'Video not found' });
             return;
         }
-        const video = await prisma.video.create({
-            data: { title, phrase, userId: req.userId!, status: 'QUEUED' },
+
+        res.json(applySignedUrls(video, req.userId!));
+    } catch {
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+router.get('/:id/download', async (req: AuthRequest, res: Response) => {
+    try {
+        const video = await prisma.video.findFirst({
+            where: { id: String(req.params.id), userId: req.userId! },
         });
-        res.status(201).json(video);
+
+        if (!video || !video.videoUrl || video.status !== 'COMPLETED') {
+            res.status(404).json({ error: 'Video not found or not ready' });
+            return;
+        }
+
+        const signedUrl = generateSignedUrl(video.videoUrl, req.userId!, 24 * 3600);
+        res.set('Content-Disposition', `attachment; filename="${video.phrase || 'video'}.mp4"`);
+        res.redirect(signedUrl);
     } catch {
         res.status(500).json({ error: 'Internal server error' });
     }
@@ -48,17 +98,14 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
         const video = await prisma.video.findFirst({
             where: { id: String(req.params.id), userId: req.userId! },
         });
+
         if (!video) {
             res.status(404).json({ error: 'Video not found' });
             return;
         }
 
-        if (video.videoUrl) {
-            await deleteFile(video.videoUrl, req.userId!);
-        }
-        if (video.thumbnailUrl) {
-            await deleteFile(video.thumbnailUrl, req.userId!);
-        }
+        if (video.videoUrl) await deleteFile(video.videoUrl, req.userId!);
+        if (video.thumbnailUrl) await deleteFile(video.thumbnailUrl, req.userId!);
 
         await prisma.video.delete({ where: { id: String(req.params.id) } });
         res.json({ success: true });

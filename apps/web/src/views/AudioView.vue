@@ -42,12 +42,8 @@
             </div>
         </div>
 
-        <div v-if="audioStore.loading && !audioStore.items.length" class="flex flex-col gap-2">
-            <div v-for="i in 3" :key="i" class="h-14 rounded-lg bg-muted animate-pulse" />
-        </div>
-
         <div
-            v-else-if="!audioStore.items.length"
+            v-if="!audioStore.items.length"
             class="rounded-xl border border-border/50 bg-card p-12 flex flex-col items-center justify-center gap-4 text-center min-h-64"
         >
             <div class="size-12 rounded-full bg-muted flex items-center justify-center">

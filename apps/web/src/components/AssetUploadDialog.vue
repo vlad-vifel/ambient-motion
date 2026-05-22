@@ -54,11 +54,7 @@
                             class="size-10 rounded shrink-0 overflow-hidden bg-muted"
                             @click.stop="openLightbox(item)"
                         >
-                            <img
-                                :src="item.preview"
-                                :alt="item.file.name"
-                                class="size-full object-cover"
-                            />
+                            <img :src="item.preview" class="size-full object-cover" />
                         </button>
 
                         <span class="flex-1 text-xs truncate min-w-0">{{ item.file.name }}</span>

@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -14,10 +14,11 @@ model User {
   passwordHash String
   createdAt    DateTime @default(now())
 
-  assets  Asset[]
-  folders Folder[]
-  audios  Audio[]
-  videos  Video[]
+  assets   Asset[]
+  folders  Folder[]
+  audios   Audio[]
+  videos   Video[]
+  sessions GenerationSession[]
 }
 
 model Folder {
@@ -44,21 +45,56 @@ model Asset {
 
   folderId String?
   folder   Folder? @relation(fields: [folderId], references: [id], onDelete: Cascade)
+
+  videos         Video[]
+  sessionAssets  SessionAsset[]
 }
 
 model Audio {
-  id              String   @id @default(cuid())
-  title           String
-  artist          String   @default("")
-  filename        String
-  coverFilename   String?
-  coverUrl        String?
-  duration        Float    @default(0)
-  url             String
-  uploadedAt      DateTime @default(now())
+  id            String   @id @default(cuid())
+  title         String
+  artist        String   @default("")
+  filename      String
+  coverFilename String?
+  coverUrl      String?
+  duration      Float    @default(0)
+  url           String
+  uploadedAt    DateTime @default(now())
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  videos   Video[]
+  sessions GenerationSession[]
+}
+
+model GenerationSession {
+  id          String   @id @default(cuid())
+  name        String?
+  durationMs  Int
+  createdAt   DateTime @default(now())
+
+  audioId String?
+  audio   Audio?  @relation(fields: [audioId], references: [id], onDelete: SetNull)
+
+  assets SessionAsset[]
+  videos Video[]
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model SessionAsset {
+  sessionId String
+  assetId   String
+
+  session GenerationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  asset   Asset             @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@id([sessionId, assetId])
+  @@index([assetId])
 }
 
 model Video {
@@ -68,10 +104,30 @@ model Video {
   status       VideoStatus @default(QUEUED)
   videoUrl     String?
   thumbnailUrl String?
+  errorMessage String?
   createdAt    DateTime    @default(now())
+  startedAt    DateTime?
+  completedAt  DateTime?
+
+  sessionId String?
+  session   GenerationSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  assetId        String?
+  asset          Asset?  @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  sourceImageUrl String  @default("")
+
+  audioId        String?
+  audio          Audio?  @relation(fields: [audioId], references: [id], onDelete: SetNull)
+  sourceAudioUrl String  @default("")
+
+  durationMs  Int    @default(30000)
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([sessionId])
+  @@index([status])
 }
 
 enum VideoStatus {

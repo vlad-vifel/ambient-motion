@@ -1,3 +1,4 @@
+import { parseBuffer } from 'music-metadata';
 import { Response, Router } from 'express';
 import multer from 'multer';
 import sharp from 'sharp';
@@ -21,6 +22,21 @@ async function cropCoverToSquare(buffer: Buffer): Promise<Buffer> {
         .resize({ width: 400, height: 400, fit: 'cover', position: 'center' })
         .jpeg({ quality: 85 })
         .toBuffer();
+}
+
+async function getDurationFromBuffer(buffer: Buffer): Promise<number> {
+    try {
+        console.log(`[Audio] Attempting to parse duration with music-metadata`);
+        const meta = await parseBuffer(buffer, { duration: true });
+        const durationSec = meta.format.duration ?? 0;
+        if (durationSec > 0) {
+            return Math.round(durationSec * 1000);
+        }
+    } catch (err) {
+        console.warn(`[Audio] music-metadata failed:`, err);
+    }
+
+    return 0;
 }
 
 router.post('/', upload, async (req: AuthRequest, res: Response) => {
@@ -59,6 +75,10 @@ router.post('/', upload, async (req: AuthRequest, res: Response) => {
         const title = req.body.title || audioFile.originalname.replace(/\.[^/.]+$/, '');
         const artist = req.body.artist || '';
 
+        console.log(`[Audio] Getting duration for ${audioFile.originalname}`);
+        const durationMs = await getDurationFromBuffer(audioFile.buffer);
+        console.log(`[Audio] Duration: ${durationMs}ms (${(durationMs / 1000).toFixed(1)}s)`);
+
         const audio = await prisma.audio.create({
             data: {
                 title,
@@ -67,6 +87,7 @@ router.post('/', upload, async (req: AuthRequest, res: Response) => {
                 url,
                 coverFilename,
                 coverUrl: coverUrl ?? null,
+                duration: durationMs,
                 userId: req.userId!,
             },
         });

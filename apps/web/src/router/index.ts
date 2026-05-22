@@ -34,6 +34,11 @@ const router = createRouter({
                     component: () => import('@/views/CreateView.vue'),
                 },
                 {
+                    path: 'create/:id',
+                    name: 'session-detail',
+                    component: () => import('@/views/SessionDetailView.vue'),
+                },
+                {
                     path: 'videos',
                     name: 'videos',
                     component: () => import('@/views/VideosView.vue'),

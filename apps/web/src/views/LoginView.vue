@@ -14,8 +14,7 @@
             </div>
 
             <Alert v-if="error" variant="destructive" class="flex">
-                <AlertCircleIcon class="size-3.5" />
-                <AlertDescription>{{ error }}</AlertDescription>
+                <AlertTitle>{{ error }}</AlertTitle>
             </Alert>
 
             <div class="flex flex-col gap-4">
@@ -63,7 +62,7 @@
                     />
                 </div>
 
-                <Button class="w-full" :disabled="loading" @click="handleSubmit">
+                <Button class="w-full mt-2" :disabled="loading" @click="handleSubmit">
                     <span v-if="loading" class="flex items-center gap-2">
                         <Spinner class="size-4" />
                         {{ mode === 'login' ? 'Logging in' : 'Creating account' }}
@@ -102,10 +101,9 @@
     import { useRouter } from 'vue-router';
     import { Button } from '@/components/ui/button';
     import { Input } from '@/components/ui/input';
-    import { Alert, AlertDescription } from '@/components/ui/alert';
+    import { Alert, AlertTitle } from '@/components/ui/alert';
     import { Spinner } from '@/components/ui/spinner';
     import { useAuthStore } from '@/stores/auth';
-    import { AlertCircleIcon } from 'lucide-vue-next';
 
     const router = useRouter();
     const auth = useAuthStore();
@@ -118,7 +116,7 @@
     const loading = ref(false);
     const error = ref('');
 
-    const API = (import.meta.env.VITE_API_URL as string) || 'http://localhost:3001';
+    const API = (import.meta.env.VITE_API_URL as string) || 'http://localhost:3000';
 
     function switchMode(newMode: 'login' | 'register') {
         mode.value = newMode;

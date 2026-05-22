@@ -34,5 +34,5 @@
         videos: 'Videos',
     };
 
-    const pageTitle = computed(() => pageTitles[route.name as string] ?? 'Ambient Motion');
+    const pageTitle = computed(() => pageTitles[route.name as string] ?? 'ambient motion');
 </script>
