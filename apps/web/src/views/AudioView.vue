@@ -96,9 +96,11 @@
                     </p>
                 </div>
 
-                <div
-                    class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                >
+                <span class="text-xs text-muted-foreground shrink-0">{{
+                    formatDuration(track.duration)
+                }}</span>
+
+                <div class="hidden group-hover:flex items-center gap-1 shrink-0">
                     <button
                         class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                         title="Edit"
@@ -157,9 +159,7 @@
                         </p>
                     </div>
 
-                    <div
-                        class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                    >
+                    <div class="hidden group-hover:flex items-center gap-0.5 shrink-0">
                         <button
                             class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                             title="Edit"
@@ -265,5 +265,12 @@
         }
         deleteDialogOpen.value = false;
         deleteTargetId.value = null;
+    }
+
+    function formatDuration(ms: number): string {
+        const totalSeconds = Math.round(ms / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes}:${String(seconds).padStart(2, '0')}`;
     }
 </script>

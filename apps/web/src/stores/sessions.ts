@@ -31,6 +31,7 @@ export const useSessionsStore = defineStore('sessions', () => {
         audioId: string;
         assetIds: string[];
         durationMs: number;
+        presetId: string;
     }): Promise<GenerationSession> {
         const { data } = await api.post<GenerationSession>('/api/sessions', payload);
         items.value.unshift(data);

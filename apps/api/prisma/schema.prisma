@@ -77,6 +77,9 @@ model GenerationSession {
   audioId String?
   audio   Audio?  @relation(fields: [audioId], references: [id], onDelete: SetNull)
 
+  presetId String
+  preset   VideoPreset @relation(fields: [presetId], references: [id])
+
   assets SessionAsset[]
   videos Video[]
 
@@ -112,6 +115,9 @@ model Video {
   sessionId String?
   session   GenerationSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
 
+  presetId String
+  preset   VideoPreset @relation(fields: [presetId], references: [id])
+
   assetId        String?
   asset          Asset?  @relation(fields: [assetId], references: [id], onDelete: SetNull)
   sourceImageUrl String  @default("")
@@ -135,4 +141,27 @@ enum VideoStatus {
   GENERATING
   COMPLETED
   FAILED
+}
+
+enum VideoFormat {
+  LANDSCAPE_16_9 @map("16:9")
+  STANDARD_4_3   @map("4:3")
+  SQUARE_1_1     @map("1:1")
+  PORTRAIT_3_4   @map("3:4")
+  VERTICAL_9_16  @map("9:16")
+}
+
+model VideoPreset {
+  id          String      @id
+  name        String
+  description String?
+  format      VideoFormat
+  component   String
+  width       Int
+  height      Int
+  fps         Int         @default(30)
+  createdAt   DateTime    @default(now())
+
+  sessions GenerationSession[]
+  videos   Video[]
 }

@@ -27,7 +27,12 @@ export const useAssetsStore = defineStore('assets', () => {
         loading.value = true;
         items.value = [];
         try {
-            const params = folderId ? { folderId } : {};
+            const params =
+                folderId === undefined
+                    ? {}
+                    : folderId === null
+                      ? { folderId: 'root' }
+                      : { folderId };
             const res = await api.get<Asset[]>('/api/assets', { params, signal: ctrl.signal });
             if (ctrl.signal.aborted) return;
             items.value = res.data;

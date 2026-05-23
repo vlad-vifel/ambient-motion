@@ -85,9 +85,24 @@ router.get('/:id/download', async (req: AuthRequest, res: Response) => {
             return;
         }
 
-        const signedUrl = generateSignedUrl(video.videoUrl, req.userId!, 24 * 3600);
-        res.set('Content-Disposition', `attachment; filename="${video.phrase || 'video'}.mp4"`);
-        res.redirect(signedUrl);
+        const signedUrl = generateSignedUrl(video.videoUrl, req.userId!, 300);
+        const upstream = await fetch(signedUrl);
+
+        if (!upstream.ok) {
+            res.status(502).json({ error: 'Failed to fetch video from storage' });
+            return;
+        }
+
+        const filename = `${(video.phrase || 'video').replace(/[^a-z0-9 ]/gi, '')}.mp4`;
+        res.set('Content-Type', 'video/mp4');
+        res.set('Content-Disposition', `attachment; filename="${filename}"`);
+
+        if (upstream.headers.get('content-length')) {
+            res.set('Content-Length', upstream.headers.get('content-length')!);
+        }
+
+        const { Readable } = await import('node:stream');
+        Readable.fromWeb(upstream.body as import('stream/web').ReadableStream).pipe(res);
     } catch {
         res.status(500).json({ error: 'Internal server error' });
     }

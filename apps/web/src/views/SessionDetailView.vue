@@ -53,53 +53,14 @@
         </div>
 
         <div v-else class="flex flex-col gap-2">
-            <div
+            <VideoListItem
                 v-for="video in session.videos"
                 :key="video.id"
-                class="group flex items-center gap-3 px-4 py-3 rounded-lg border border-transparent bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer"
+                :video="video"
                 @click="openVideo(video)"
-            >
-                <div
-                    class="relative size-9 rounded-md bg-muted shrink-0 overflow-hidden flex items-center justify-center"
-                >
-                    <img
-                        v-if="video.thumbnailUrl"
-                        :src="video.thumbnailUrl"
-                        class="absolute inset-0 size-full object-cover"
-                    />
-                    <Loader2
-                        v-else-if="video.status === 'QUEUED' || video.status === 'GENERATING'"
-                        class="size-4 text-muted-foreground animate-spin"
-                    />
-                    <AlertCircle
-                        v-else-if="video.status === 'FAILED'"
-                        class="size-4 text-destructive"
-                    />
-                    <Film v-else class="size-4 text-muted-foreground" />
-                </div>
-
-                <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium truncate">{{ video.phrase }}</p>
-                </div>
-
-                <span
-                    :class="[
-                        'text-xs px-2 py-0.5 rounded-full shrink-0',
-                        statusClass(video.status),
-                    ]"
-                >
-                    {{ statusLabel(video.status) }}
-                </span>
-
-                <button
-                    v-if="video.status !== 'QUEUED' && video.status !== 'GENERATING'"
-                    class="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100 shrink-0"
-                    title="Delete"
-                    @click.stop="startDelete(video.id)"
-                >
-                    <Trash2 class="size-3.5" />
-                </button>
-            </div>
+                @delete="startDelete(video.id)"
+                @edit="openEditDialog(video)"
+            />
         </div>
     </div>
 
@@ -156,7 +117,7 @@
 <script setup lang="ts">
     import { computed, onMounted, onUnmounted, ref } from 'vue';
     import { useRoute, useRouter } from 'vue-router';
-    import { AlertCircle, ArrowLeft, Film, Loader2, Music, Trash2 } from 'lucide-vue-next';
+    import { ArrowLeft, Film, Music, Trash2 } from 'lucide-vue-next';
     import {
         AlertDialog,
         AlertDialogAction,
@@ -168,6 +129,7 @@
         AlertDialogTitle,
     } from '@/components/ui/alert-dialog';
     import VideoLightbox from '@/components/VideoLightbox.vue';
+    import VideoListItem from '@/components/VideoListItem.vue';
     import { useSessionsStore } from '@/stores/sessions';
     import { useVideosStore } from '@/stores/videos';
     import type { Video } from '@/types/video';
@@ -188,7 +150,7 @@
         if (session.value.name) return session.value.name;
         const idx = sessionsStore.items.findIndex((s) => s.id === session.value.id);
         const num = idx === -1 ? session.value.id.slice(-4) : sessionsStore.items.length - 1 - idx;
-        return `#${num}`;
+        return `Session #${num}`;
     });
 
     onMounted(async () => {
@@ -211,6 +173,11 @@
         deleteVideoOpen.value = true;
     }
 
+    function openEditDialog(video: Video) {
+        // TODO: implement edit functionality
+        console.log('Edit video:', video);
+    }
+
     async function doDeleteVideo() {
         await videosStore.remove(deleteVideoId.value);
         if (sessionsStore.current) {
@@ -225,25 +192,5 @@
         await sessionsStore.remove(session.value.id);
         deleteOpen.value = false;
         router.push('/create');
-    }
-
-    function statusClass(status: string) {
-        const map: Record<string, string> = {
-            QUEUED: 'bg-muted text-muted-foreground',
-            GENERATING: 'bg-blue-500/15 text-blue-400',
-            COMPLETED: 'bg-emerald-500/15 text-emerald-400',
-            FAILED: 'bg-destructive/15 text-destructive',
-        };
-        return map[status] ?? 'bg-muted text-muted-foreground';
-    }
-
-    function statusLabel(status: string) {
-        const map: Record<string, string> = {
-            QUEUED: 'queued',
-            GENERATING: 'creating',
-            COMPLETED: 'done',
-            FAILED: 'failed',
-        };
-        return map[status] ?? status.toLowerCase();
     }
 </script>

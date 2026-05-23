@@ -8,42 +8,10 @@
                 </p>
             </div>
 
-            <div class="flex items-center gap-2">
-                <div
-                    v-if="!sessionsStore.loading && sessionsStore.items.length"
-                    class="flex gap-1 p-0.5 rounded-md border border-border bg-muted/20"
-                >
-                    <button
-                        :class="[
-                            'p-1.5 rounded transition-colors',
-                            viewMode === 'list'
-                                ? 'bg-background text-foreground'
-                                : 'text-muted-foreground hover:text-foreground',
-                        ]"
-                        title="List view"
-                        @click="viewMode = 'list'"
-                    >
-                        <List class="size-4" />
-                    </button>
-                    <button
-                        :class="[
-                            'p-1.5 rounded transition-colors',
-                            viewMode === 'grid'
-                                ? 'bg-background text-foreground'
-                                : 'text-muted-foreground hover:text-foreground',
-                        ]"
-                        title="Grid view"
-                        @click="viewMode = 'grid'"
-                    >
-                        <Grid class="size-4" />
-                    </button>
-                </div>
-
-                <Button size="sm" @click="showCreate = true">
-                    <Plus class="size-4" />
-                    Create videos
-                </Button>
-            </div>
+            <Button size="sm" @click="showCreate = true">
+                <Plus class="size-4" />
+                Create videos
+            </Button>
         </div>
 
         <div
@@ -61,10 +29,7 @@
             </div>
         </div>
 
-        <div
-            v-else-if="sessionsStore.items.length && viewMode === 'list'"
-            class="flex flex-col gap-2"
-        >
+        <div v-else-if="sessionsStore.items.length" class="flex flex-col gap-2">
             <div
                 v-for="(session, i) in sessionsStore.items"
                 :key="session.id"
@@ -92,9 +57,7 @@
                     </p>
                 </div>
 
-                <div
-                    class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2"
-                >
+                <div class="hidden group-hover:flex items-center gap-1 shrink-0 ml-2">
                     <button
                         class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                         title="Rename"
@@ -104,61 +67,6 @@
                     </button>
                     <button
                         class="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                        title="Delete"
-                        @click.stop="startDelete(session.id)"
-                    >
-                        <Trash2 class="size-3.5" />
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <div v-else class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-            <div
-                v-for="(session, i) in sessionsStore.items"
-                :key="session.id"
-                class="group relative aspect-square rounded-lg overflow-hidden bg-muted cursor-pointer"
-                @click="$router.push(`/create/${session.id}`)"
-            >
-                <img
-                    v-if="session.audio?.coverUrl"
-                    :src="session.audio.coverUrl"
-                    class="size-full object-cover bg-muted"
-                />
-                <div v-else class="size-full flex items-center justify-center">
-                    <Music class="size-8 text-muted-foreground" />
-                </div>
-
-                <div
-                    class="absolute inset-0 flex flex-col justify-end p-3"
-                    style="
-                        background: linear-gradient(to top, rgba(0, 0, 0, 0.85), transparent 50%);
-                    "
-                >
-                    <p class="text-white text-sm font-medium truncate leading-snug">
-                        {{ sessionLabel(session, i) }}
-                    </p>
-                    <p
-                        v-if="session.audio"
-                        class="text-white/70 text-xs truncate leading-snug mt-0.5"
-                    >
-                        {{ session.audio.title
-                        }}{{ session.audio.artist ? ` — ${session.audio.artist}` : '' }}
-                    </p>
-                </div>
-
-                <div
-                    class="absolute top-2 right-2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                    <button
-                        class="p-1.5 rounded group-hover:bg-muted/50 hover:bg-muted text-foreground transition-colors"
-                        title="Rename"
-                        @click.stop="startRename(session)"
-                    >
-                        <Pencil class="size-3.5" />
-                    </button>
-                    <button
-                        class="p-1.5 rounded group-hover:bg-muted/50 hover:bg-muted group-hover:text-foreground hover:text-destructive transition-colors"
                         title="Delete"
                         @click.stop="startDelete(session.id)"
                     >
@@ -219,7 +127,7 @@
 </template>
 
 <script setup lang="ts">
-    import { Clapperboard, Grid, List, Music, Pencil, Plus, Trash2 } from 'lucide-vue-next';
+    import { Clapperboard, Music, Pencil, Plus, Trash2 } from 'lucide-vue-next';
     import { onMounted, ref } from 'vue';
     import {
         AlertDialog,
@@ -245,8 +153,6 @@
     const audioStore = useAudioStore();
     const assetsStore = useAssetsStore();
     const foldersStore = useFoldersStore();
-
-    const viewMode = ref<'list' | 'grid'>('list');
 
     const showCreate = ref(false);
     const renameOpen = ref(false);

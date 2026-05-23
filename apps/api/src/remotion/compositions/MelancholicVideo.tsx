@@ -35,8 +35,8 @@ export const MelancholicVideo: React.FC<MelancholicVideoProps> = ({
         { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
     );
 
-    const fontSize = Math.round(width * 0.042);
-    const barPaddingV = Math.round(width * 0.022);
+    const fontSize = Math.round(width * 0.038);
+    const barPaddingV = Math.round(width * 0.019);
     const barPaddingH = Math.round(width * 0.06);
 
     const fontUrl = staticFile('fonts/Montserrat-500.ttf');
@@ -105,10 +105,24 @@ export const MelancholicVideo: React.FC<MelancholicVideoProps> = ({
                 }}
             />
 
-            {/* Layer 4: animated noise */}
-            <AbsoluteFill style={{ opacity: 0.45, mixBlendMode: 'overlay' }}>
-                {/*TODO:*/}
-            </AbsoluteFill>
+            {/* Layer 4: animated noise - disabled, using FFmpeg grain instead */}
+            {/* <AbsoluteFill style={{ opacity: 0.65, mixBlendMode: 'overlay' }}>
+                <svg width="100%" height="100%">
+                    <defs>
+                        <filter id={`grain-${frame}`}>
+                            <feTurbulence
+                                type="fractalNoise"
+                                baseFrequency="0.2"
+                                numOctaves="3"
+                                seed={frame}
+                                stitchTiles="stitch"
+                            />
+                            <feColorMatrix type="saturate" values="0" />
+                        </filter>
+                    </defs>
+                    <rect width="100%" height="100%" filter={`url(#grain-${frame})`} />
+                </svg>
+            </AbsoluteFill> */}
 
             <Html5Audio src={audioUrl} />
         </AbsoluteFill>

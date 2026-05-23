@@ -22,11 +22,14 @@ const upload = multer({
 router.get('/', async (req: AuthRequest, res: Response) => {
     try {
         const { folderId } = req.query as { folderId?: string };
+        const where: { userId: string; folderId?: string | null } = { userId: req.userId! };
+        if (folderId === 'root') {
+            where.folderId = null;
+        } else if (folderId) {
+            where.folderId = folderId;
+        }
         const assets = await prisma.asset.findMany({
-            where: {
-                userId: req.userId!,
-                folderId: folderId ? folderId : null,
-            },
+            where,
             orderBy: { uploadedAt: 'desc' },
         });
         res.json(assets);

@@ -33,10 +33,11 @@ export async function renderThumbnail(params: RenderThumbnailParams): Promise<vo
     );
     await renderStill({
         serveUrl,
-        composition,
+        composition: { ...composition, width: 240, height: 240 },
         output: outputPath,
         inputProps,
         frame: middleFrame,
+        jpegQuality: 70,
         chromiumOptions: {
             gl: 'angle',
         },

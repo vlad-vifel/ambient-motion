@@ -106,9 +106,7 @@
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-medium truncate">{{ folder.name }}</p>
                 </div>
-                <div
-                    class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                >
+                <div class="hidden group-hover:flex items-center gap-1 shrink-0">
                     <button
                         class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                         title="Rename"
@@ -144,9 +142,7 @@
                     </Badge>
                     <span class="text-xs text-muted-foreground">{{ formatSize(asset.size) }}</span>
                 </div>
-                <div
-                    class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2"
-                >
+                <div class="hidden group-hover:flex items-center gap-1 shrink-0 ml-2">
                     <button
                         class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                         title="Rename"
@@ -176,11 +172,9 @@
                 <p class="text-xs font-medium truncate w-full text-center">
                     {{ folder.name }}
                 </p>
-                <div
-                    class="absolute top-2 right-2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
+                <div class="absolute top-2 right-2 hidden group-hover:flex gap-0.5">
                     <button
-                        class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                        class="p-1.5 rounded group-hoverhover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                         title="Rename"
                         @click.stop="openFolderForm(folder)"
                     >
@@ -204,10 +198,10 @@
             >
                 <img :src="asset.url" class="size-full object-cover bg-muted" />
                 <div
-                    class="absolute inset-0 flex flex-col justify-end p-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                    style="
-                        background: linear-gradient(to top, rgba(0, 0, 0, 0.75), transparent 35%);
-                    "
+                    class="absolute inset-0 flex flex-col justify-end p-2 transition-opacity opacity-0 group-hover:opacity-100"
+                    :style="{
+                        background: 'linear-gradient(to top, rgba(0, 0, 0, 0.75), transparent 35%)',
+                    }"
                 >
                     <p class="text-white text-xs truncate leading-snug">
                         {{ asset.filename }}
@@ -216,9 +210,7 @@
                 <div v-if="usedAssetIds.has(asset.id)" class="absolute top-2 left-2">
                     <Badge variant="secondary" class="text-xs">used</Badge>
                 </div>
-                <div
-                    class="absolute top-2 right-2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
+                <div class="absolute top-2 right-2 hidden group-hover:flex gap-0.5">
                     <button
                         class="p-1.5 rounded group-hover:bg-muted/50 hover:bg-muted text-foreground transition-colors"
                         title="Rename"

@@ -27,7 +27,7 @@ async function cropCoverToSquare(buffer: Buffer): Promise<Buffer> {
 async function getDurationFromBuffer(buffer: Buffer): Promise<number> {
     try {
         console.log(`[Audio] Attempting to parse duration with music-metadata`);
-        const meta = await parseBuffer(buffer, { duration: true });
+        const meta = await parseBuffer(buffer);
         const durationSec = meta.format.duration ?? 0;
         if (durationSec > 0) {
             return Math.round(durationSec * 1000);

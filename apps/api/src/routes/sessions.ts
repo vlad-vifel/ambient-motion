@@ -56,15 +56,18 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
 router.post('/', async (req: AuthRequest, res: Response) => {
     try {
-        const { name, audioId, assetIds, durationMs } = req.body as {
+        const { name, audioId, assetIds, durationMs, presetId } = req.body as {
             name?: string;
             audioId: string;
             assetIds: string[];
             durationMs: number;
+            presetId: string;
         };
 
-        if (!audioId || !assetIds?.length || durationMs == null) {
-            res.status(400).json({ error: 'audioId, assetIds and durationMs are required' });
+        if (!audioId || !assetIds?.length || durationMs == null || !presetId) {
+            res.status(400).json({
+                error: 'audioId, assetIds, durationMs and presetId are required',
+            });
             return;
         }
 
@@ -88,6 +91,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
                 name: name ?? null,
                 durationMs,
                 audioId,
+                presetId,
                 userId: req.userId!,
                 assets: {
                     create: assetIds.map((assetId) => ({ assetId })),
@@ -196,6 +200,7 @@ router.post('/:id/generate', async (req: AuthRequest, res: Response) => {
             include: {
                 audio: true,
                 assets: { include: { asset: true } },
+                preset: true,
             },
         });
 
@@ -234,6 +239,7 @@ router.post('/:id/generate', async (req: AuthRequest, res: Response) => {
                         phrase,
                         status: 'QUEUED',
                         sessionId: session.id,
+                        presetId: session.presetId,
                         assetId: randomAsset.id,
                         sourceImageUrl,
                         audioId: session.audioId,

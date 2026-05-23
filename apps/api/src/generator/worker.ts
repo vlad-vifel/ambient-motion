@@ -5,6 +5,7 @@ import { prisma } from '../lib/prisma';
 import { uploadThumbnail, uploadVideoFile } from '../lib/s3';
 import { renderThumbnail } from './thumbnail';
 import { renderVideo } from './render';
+import { applyGrainFilter } from './ffmpeg-grain';
 
 let running = false;
 let wake: (() => void) | null = null;
@@ -30,6 +31,15 @@ async function loop(): Promise<void> {
         const job = await prisma.video.findFirst({
             where: { status: 'QUEUED' },
             orderBy: { createdAt: 'asc' },
+            select: {
+                id: true,
+                sourceImageUrl: true,
+                sourceAudioUrl: true,
+                phrase: true,
+                durationMs: true,
+                userId: true,
+                presetId: true,
+            },
         });
 
         if (!job) {
@@ -55,6 +65,7 @@ async function processJob(job: {
     phrase: string;
     durationMs: number;
     userId: string;
+    presetId: string;
 }): Promise<void> {
     const tmpDir = path.join(os.tmpdir(), `am-${job.id}`);
     console.log(`[Worker] Starting job ${job.id}`, {
@@ -73,8 +84,11 @@ async function processJob(job: {
             data: { status: 'GENERATING', startedAt: new Date() },
         });
 
+        const preset = await prisma.videoPreset.findUnique({ where: { id: job.presetId } });
+        if (!preset) throw new Error(`Preset ${job.presetId} not found`);
+
         const renderParams = {
-            presetId: 'square-1080',
+            presetId: preset.component,
             imageUrl: job.sourceImageUrl,
             audioUrl: job.sourceAudioUrl,
             phrase: job.phrase,
@@ -87,6 +101,15 @@ async function processJob(job: {
             console.log(`[Worker] Video render completed`);
         } catch (err) {
             console.error(`[Worker] Video render failed:`, err);
+            throw err;
+        }
+
+        console.log(`[Worker] Applying grain filter...`);
+        try {
+            await applyGrainFilter(videoPath, videoPath);
+            console.log(`[Worker] Grain filter applied`);
+        } catch (err) {
+            console.error(`[Worker] Grain filter failed:`, err);
             throw err;
         }
 
