@@ -2,15 +2,15 @@ h
 <template>
     <Dialog :open="open" @update:open="(v) => v && emit('update:open', v)">
         <DialogContent
-            class="max-w-xl p-0 gap-0 overflow-hidden"
+            class="max-w-xl p-0 gap-0 flex flex-col max-h-[90vh]"
             :disable-outside-close="true"
             :show-close-button="false"
         >
-            <DialogHeader class="px-6 pt-6 pb-4">
+            <DialogHeader class="px-6 pt-6 pb-4 shrink-0">
                 <DialogTitle>Create videos</DialogTitle>
             </DialogHeader>
 
-            <div class="px-6 pb-6 flex flex-col gap-5">
+            <div class="px-6 flex flex-col gap-5 overflow-y-auto min-h-0">
                 <div class="flex flex-col gap-1.5">
                     <label class="flex items-center text-xs text-muted-foreground"
                     >Audio track</label
@@ -179,6 +179,42 @@ h
 
                 <div class="flex flex-col gap-2">
                     <label class="flex items-center text-xs text-muted-foreground">Phrases</label>
+
+                    <div class="h-9 flex items-center gap-2">
+                        <Input
+                            v-model="aiTheme"
+                            placeholder="Type theme or mood"
+                            class="flex-1"
+                            :disabled="generatingPhrases"
+                        />
+                        <NumberField
+                            v-model="aiCount"
+                            :min="1"
+                            :max="20"
+                            :disabled="generatingPhrases"
+                            class="w-20"
+                        >
+                            <NumberFieldContent>
+                                <NumberFieldDecrement />
+                                <NumberFieldInput />
+                                <NumberFieldIncrement />
+                            </NumberFieldContent>
+                        </NumberField>
+                        <Button
+                            class="h-full!"
+                            variant="secondary"
+                            :disabled="!aiTheme.trim() || generatingPhrases"
+                            @click="generatePhrases"
+                        >
+                            <Loader2 v-if="generatingPhrases" class="size-3.5 animate-spin" />
+                            <WandSparkles v-else class="size-3.5" />
+                        </Button>
+                    </div>
+
+                    <label class="mb-2 flex items-center text-[12px] text-muted-foreground"
+                    >You can type theme or mood here to generate phrases</label
+                    >
+
                     <div class="flex flex-col gap-2">
                         <div v-for="(_, i) in phrases" :key="i" class="flex items-center gap-2">
                             <Input
@@ -198,7 +234,7 @@ h
                     </div>
                     <button
                         type="button"
-                        class="self-start text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 mt-1"
+                        class="self-start text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
                         @click="addPhrase"
                     >
                         <Plus class="size-3" />
@@ -210,13 +246,13 @@ h
                 <p v-if="validationMessage" class="text-sm text-yellow-600">
                     {{ validationMessage }}
                 </p>
+            </div>
 
-                <div class="flex items-center justify-end gap-2 pt-1">
-                    <Button size="sm" variant="ghost" @click="onCancel">Cancel</Button>
-                    <Button :disabled="!canSubmit" size="sm" @click="submit">
-                        Create videos{{ filledCount ? ` (${filledCount})` : '' }}
-                    </Button>
-                </div>
+            <div class="px-6 py-4 shrink-0 border-border/50 flex items-center justify-end gap-2">
+                <Button size="sm" variant="ghost" @click="onCancel">Cancel</Button>
+                <Button :disabled="!canSubmit" size="sm" @click="submit">
+                    Create videos{{ filledCount ? ` (${filledCount})` : '' }}
+                </Button>
             </div>
         </DialogContent>
     </Dialog>
@@ -232,6 +268,8 @@ h
         Square,
         RectangleHorizontal,
         RectangleVertical,
+        WandSparkles,
+        Loader2,
     } from 'lucide-vue-next';
     import type { Component } from 'vue';
     import { computed, reactive, ref, watch } from 'vue';
@@ -240,6 +278,13 @@ h
     import { Button } from '@/components/ui/button';
     import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
     import { Input } from '@/components/ui/input';
+    import {
+        NumberField,
+        NumberFieldContent,
+        NumberFieldDecrement,
+        NumberFieldIncrement,
+        NumberFieldInput,
+    } from '@/components/ui/number-field';
     import {
         Select,
         SelectContent,
@@ -285,6 +330,9 @@ h
     const error = ref('');
     const phrases = ref<string[]>(['']);
     const allAssets = ref<Asset[]>([]);
+    const aiTheme = ref('');
+    const aiCount = ref(3);
+    const generatingPhrases = ref(false);
 
     const form = reactive({
         audioId: '',
@@ -356,9 +404,29 @@ h
                 phrases.value = [''];
                 error.value = '';
                 allAssets.value = [];
+                aiTheme.value = '';
+                aiCount.value = 3;
             }
         },
     );
+
+    async function generatePhrases() {
+        if (!aiTheme.value.trim()) return;
+        generatingPhrases.value = true;
+        try {
+            const res = await api.post<{ phrases: string[] }>('/api/ai/phrases', {
+                theme: aiTheme.value,
+                count: aiCount.value,
+            });
+            const existing = phrases.value.filter((p) => p.trim());
+            const merged = [...existing, ...res.data.phrases];
+            phrases.value = merged.length ? merged : [''];
+        } catch {
+            error.value = 'Failed to generate phrases';
+        } finally {
+            generatingPhrases.value = false;
+        }
+    }
 
     function addPhrase() {
         phrases.value.push('');

@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma';
 import { deleteFile, generateSignedUrl } from '../lib/s3';
 import { AuthRequest, requireAuth } from '../middleware/auth';
 import { VIDEO_PRESETS } from '../remotion/presets';
+import { notifyWorker } from '../generator/worker';
 
 const router = Router();
 router.use(requireAuth);
@@ -103,6 +104,51 @@ router.get('/:id/download', async (req: AuthRequest, res: Response) => {
 
         const { Readable } = await import('node:stream');
         Readable.fromWeb(upstream.body as import('stream/web').ReadableStream).pipe(res);
+    } catch {
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+router.patch('/:id', async (req: AuthRequest, res: Response) => {
+    try {
+        const { phrase } = req.body as { phrase?: string };
+        if (!phrase || !phrase.trim()) {
+            res.status(400).json({ error: 'phrase is required' });
+            return;
+        }
+
+        const video = await prisma.video.findFirst({
+            where: { id: String(req.params.id), userId: req.userId! },
+        });
+
+        if (!video) {
+            res.status(404).json({ error: 'Video not found' });
+            return;
+        }
+
+        if (video.phrase === phrase.trim()) {
+            res.status(400).json({ error: 'Phrase is the same' });
+            return;
+        }
+
+        if (video.videoUrl) await deleteFile(video.videoUrl, req.userId!);
+        if (video.thumbnailUrl) await deleteFile(video.thumbnailUrl, req.userId!);
+
+        const updated = await prisma.video.update({
+            where: { id: String(req.params.id) },
+            data: {
+                phrase: phrase.trim(),
+                status: 'QUEUED',
+                videoUrl: null,
+                thumbnailUrl: null,
+                startedAt: null,
+                completedAt: null,
+                errorMessage: null,
+            },
+        });
+
+        notifyWorker();
+        res.json(updated);
     } catch {
         res.status(500).json({ error: 'Internal server error' });
     }

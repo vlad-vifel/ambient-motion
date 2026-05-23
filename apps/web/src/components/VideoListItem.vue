@@ -27,7 +27,10 @@
             {{ statusLabel(video.status) }}
         </span>
 
-        <div class="hidden group-hover:flex items-center gap-0.5 shrink-0">
+        <div
+            v-if="video.status !== 'QUEUED' && video.status !== 'GENERATING'"
+            class="hidden group-hover:flex items-center gap-0.5 shrink-0"
+        >
             <button
                 v-if="video.status === 'COMPLETED' && video.videoUrl"
                 class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
@@ -47,7 +50,6 @@
             </button>
 
             <button
-                v-if="video.status !== 'QUEUED' && video.status !== 'GENERATING'"
                 class="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                 title="Delete"
                 @click.stop="$emit('delete')"

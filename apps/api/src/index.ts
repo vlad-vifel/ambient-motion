@@ -9,6 +9,7 @@ import foldersRoutes from './routes/folders';
 import videosRoutes from './routes/videos';
 import sessionsRoutes from './routes/sessions';
 import videoPresetsRouter from './routes/video-presets';
+import aiRouter from './routes/ai';
 import { startWorker } from './generator/worker';
 
 const app = express();
@@ -38,6 +39,7 @@ app.use('/api/audio', audioRoutes);
 app.use('/api/videos', videosRoutes);
 app.use('/api/sessions', sessionsRoutes);
 app.use('/api/video-presets', videoPresetsRouter);
+app.use('/api/ai', aiRouter);
 
 app.use((_req, res) => {
     res.status(404).json({ error: 'Not found' });

@@ -37,6 +37,7 @@ export async function renderThumbnail(params: RenderThumbnailParams): Promise<vo
         output: outputPath,
         inputProps,
         frame: middleFrame,
+        imageFormat: 'jpeg',
         jpegQuality: 70,
         chromiumOptions: {
             gl: 'angle',

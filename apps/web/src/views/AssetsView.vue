@@ -142,7 +142,7 @@
                     </Badge>
                     <span class="text-xs text-muted-foreground">{{ formatSize(asset.size) }}</span>
                 </div>
-                <div class="hidden group-hover:flex items-center gap-1 shrink-0 ml-2">
+                <div class="hidden group-hover:flex items-center gap-1 shrink-0">
                     <button
                         class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                         title="Rename"
@@ -174,7 +174,7 @@
                 </p>
                 <div class="absolute top-2 right-2 hidden group-hover:flex gap-0.5">
                     <button
-                        class="p-1.5 rounded group-hoverhover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                        class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                         title="Rename"
                         @click.stop="openFolderForm(folder)"
                     >

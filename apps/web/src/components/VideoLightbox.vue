@@ -44,8 +44,20 @@
         (e: 'update:open', v: boolean): void;
     }>();
 
-    function downloadVideo() {
-        if (!props.src) return;
-        window.location.href = `/api/videos/${props.videoId}/download`;
+    async function downloadVideo() {
+        const apiBase = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${apiBase}/api/videos/${props.videoId}/download`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${props.phrase}.mp4`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     }
 </script>

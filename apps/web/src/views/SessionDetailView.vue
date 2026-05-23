@@ -64,6 +64,18 @@
         </div>
     </div>
 
+    <VideoEditDialog
+        :open="editDialogOpen"
+        :video="editVideo"
+        @update:open="
+            (v) => {
+                editDialogOpen = v;
+                if (!v) editVideo = null;
+            }
+        "
+        @requeued="sessionsStore.startPolling()"
+    />
+
     <VideoLightbox
         :open="videoDialogOpen"
         :src="activeVideo?.videoUrl ?? null"
@@ -128,6 +140,7 @@
         AlertDialogHeader,
         AlertDialogTitle,
     } from '@/components/ui/alert-dialog';
+    import VideoEditDialog from '@/components/VideoEditDialog.vue';
     import VideoLightbox from '@/components/VideoLightbox.vue';
     import VideoListItem from '@/components/VideoListItem.vue';
     import { useSessionsStore } from '@/stores/sessions';
@@ -143,7 +156,9 @@
     const deleteOpen = ref(false);
     const videoDialogOpen = ref(false);
     const deleteVideoOpen = ref(false);
+    const editDialogOpen = ref(false);
     const activeVideo = ref<Video | null>(null);
+    const editVideo = ref<Video | null>(null);
     const deleteVideoId = ref('');
 
     const sessionLabel = computed(() => {
@@ -174,8 +189,8 @@
     }
 
     function openEditDialog(video: Video) {
-        // TODO: implement edit functionality
-        console.log('Edit video:', video);
+        editVideo.value = video;
+        editDialogOpen.value = true;
     }
 
     async function doDeleteVideo() {
