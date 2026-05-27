@@ -24,16 +24,20 @@ async function cropCoverToSquare(buffer: Buffer): Promise<Buffer> {
         .toBuffer();
 }
 
-async function getDurationFromBuffer(buffer: Buffer): Promise<number> {
+async function getDurationFromBuffer(
+    buffer: Buffer,
+    mimeType: string = 'audio/mpeg',
+): Promise<number> {
     try {
         console.log(`[Audio] Attempting to parse duration with music-metadata`);
-        const meta = await parseBuffer(buffer);
+        const meta = await parseBuffer(buffer, { mimeType });
         const durationSec = meta.format.duration ?? 0;
+        console.log(`[Audio] Parsed duration: ${durationSec}s`);
         if (durationSec > 0) {
             return Math.round(durationSec * 1000);
         }
     } catch (err) {
-        console.warn(`[Audio] music-metadata failed:`, err);
+        console.error(`[Audio] music-metadata failed:`, err);
     }
 
     return 0;
@@ -76,7 +80,7 @@ router.post('/', upload, async (req: AuthRequest, res: Response) => {
         const artist = req.body.artist || '';
 
         console.log(`[Audio] Getting duration for ${audioFile.originalname}`);
-        const durationMs = await getDurationFromBuffer(audioFile.buffer);
+        const durationMs = await getDurationFromBuffer(audioFile.buffer, audioFile.mimetype);
         console.log(`[Audio] Duration: ${durationMs}ms (${(durationMs / 1000).toFixed(1)}s)`);
 
         const audio = await prisma.audio.create({
