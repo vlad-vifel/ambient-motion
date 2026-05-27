@@ -1,6 +1,6 @@
 <template>
     <div class="flex flex-col gap-6">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h2 class="text-xl font-semibold">Audio</h2>
                 <p class="text-sm text-muted-foreground mt-0.5">Your preprocessed audio tracks</p>
@@ -61,11 +61,12 @@
             <div
                 v-for="track in audioStore.items"
                 :key="track.id"
-                class="group flex items-center gap-3 px-4 py-3 rounded-lg border border-transparent bg-muted/20 hover:bg-muted/40 transition-colors"
+                class="group flex items-center gap-3 px-4 py-3 rounded-lg border border-transparent bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer sm:cursor-auto"
+                @click="handleRowClick(track)"
             >
                 <button
                     class="group/cover relative size-9 rounded-md bg-muted shrink-0 flex items-center justify-center overflow-hidden"
-                    @click="onPlay(track)"
+                    @click.stop="onPlay(track)"
                 >
                     <img
                         v-if="track.coverUrl"
@@ -74,10 +75,10 @@
                     />
                     <Music
                         v-else
-                        class="size-4 text-muted-foreground transition-all duration-150 group-hover/cover:text-transparent"
+                        class="size-4 text-muted-foreground transition-all duration-150 sm:group-hover/cover:text-transparent"
                     />
                     <span
-                        class="absolute inset-0 flex items-center justify-center bg-black/30 rounded-md transition-opacity duration-150 opacity-0 group-hover/cover:opacity-100"
+                        class="hidden sm:flex absolute inset-0 items-center justify-center bg-black/30 rounded-md transition-opacity duration-150 opacity-0 group-hover/cover:opacity-100"
                     >
                         <Pause
                             v-if="player.track?.id === track.id && player.playing"
@@ -100,7 +101,7 @@
                     formatDuration(track.duration)
                 }}</span>
 
-                <div class="hidden group-hover:flex items-center gap-1 shrink-0">
+                <div class="hidden sm:group-hover:flex items-center gap-1 shrink-0">
                     <button
                         class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                         title="Edit"
@@ -116,6 +117,29 @@
                         <Trash2 class="size-3.5" />
                     </button>
                 </div>
+                <DropdownMenu>
+                    <DropdownMenuTrigger as-child class="sm:hidden" @click.stop>
+                        <button
+                            class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                        >
+                            <MoreVertical class="size-4" />
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" @click.stop>
+                        <DropdownMenuItem @click="openEdit(track)">
+                            <Pencil class="size-4" />
+                            Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                            class="text-destructive focus:text-destructive"
+                            @click="openDeleteDialog(track.id)"
+                        >
+                            <Trash2 class="size-4" />
+                            Delete
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
         </div>
 
@@ -123,11 +147,12 @@
             <div
                 v-for="track in audioStore.items"
                 :key="track.id"
-                class="group flex flex-col gap-2 p-3 rounded-lg border border-transparent bg-muted/20 hover:bg-muted/40 transition-colors"
+                class="group flex flex-col gap-2 p-3 rounded-lg border border-transparent bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer sm:cursor-auto"
+                @click="handleRowClick(track)"
             >
                 <button
                     class="group/cover relative w-full aspect-square rounded-md bg-muted flex items-center justify-center overflow-hidden"
-                    @click="onPlay(track)"
+                    @click.stop="onPlay(track)"
                 >
                     <img
                         v-if="track.coverUrl"
@@ -136,10 +161,10 @@
                     />
                     <Music
                         v-else
-                        class="size-8 text-muted-foreground transition-all duration-150 group-hover/cover:text-transparent"
+                        class="size-8 text-muted-foreground transition-all duration-150 sm:group-hover/cover:text-transparent"
                     />
                     <span
-                        class="absolute inset-0 flex items-center justify-center bg-black/30 rounded-md transition-opacity duration-150 opacity-0 group-hover/cover:opacity-100"
+                        class="hidden sm:flex absolute inset-0 items-center justify-center bg-black/30 rounded-md transition-opacity duration-150 opacity-0 group-hover/cover:opacity-100"
                     >
                         <Pause
                             v-if="player.track?.id === track.id && player.playing"
@@ -159,7 +184,7 @@
                         </p>
                     </div>
 
-                    <div class="hidden group-hover:flex items-center gap-0.5 shrink-0">
+                    <div class="hidden sm:group-hover:flex items-center gap-0.5 shrink-0">
                         <button
                             class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                             title="Edit"
@@ -175,6 +200,29 @@
                             <Trash2 class="size-3.5" />
                         </button>
                     </div>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger as-child class="sm:hidden" @click.stop>
+                            <button
+                                class="p-1 rounded bg-muted text-foreground transition-colors shrink-0"
+                            >
+                                <MoreVertical class="size-3.5" />
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" @click.stop>
+                            <DropdownMenuItem @click="openEdit(track)">
+                                <Pencil class="size-4" />
+                                Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                                class="text-destructive focus:text-destructive"
+                                @click="openDeleteDialog(track.id)"
+                            >
+                                <Trash2 class="size-4" />
+                                Delete
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </div>
         </div>
@@ -204,7 +252,17 @@
 </template>
 
 <script setup lang="ts">
-    import { Grid, List, Music, Pause, Pencil, Play, Trash2, Upload } from 'lucide-vue-next';
+    import {
+        Grid,
+        List,
+        MoreVertical,
+        Music,
+        Pause,
+        Pencil,
+        Play,
+        Trash2,
+        Upload,
+    } from 'lucide-vue-next';
     import { onMounted, onUnmounted, ref } from 'vue';
     import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
     import AudioFormDialog from '@/components/AudioFormDialog.vue';
@@ -218,6 +276,13 @@
         AlertDialogHeader,
         AlertDialogTitle,
     } from '@/components/ui/alert-dialog';
+    import {
+        DropdownMenu,
+        DropdownMenuContent,
+        DropdownMenuItem,
+        DropdownMenuSeparator,
+        DropdownMenuTrigger,
+    } from '@/components/ui/dropdown-menu';
     import { Button } from '@/components/ui/button';
     import { type Audio, useAudioStore } from '@/stores/audio';
     import { usePlayerStore } from '@/stores/player';
@@ -249,6 +314,11 @@
         } else {
             player.play(track);
         }
+    }
+
+    function handleRowClick(track: Audio) {
+        if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+        onPlay(track);
     }
 
     function openUpload() {

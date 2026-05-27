@@ -1,6 +1,6 @@
 <template>
     <div class="flex flex-col gap-6">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h2 class="text-xl font-semibold">{{ currentFolder?.name || 'Assets' }}</h2>
                 <p class="text-sm text-muted-foreground mt-0.5">Your assets for video generation</p>
@@ -96,7 +96,7 @@
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-medium truncate">{{ folder.name }}</p>
                 </div>
-                <div class="hidden group-hover:flex items-center gap-1 shrink-0">
+                <div class="hidden sm:group-hover:flex items-center gap-1 shrink-0">
                     <button
                         class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                         title="Rename"
@@ -112,6 +112,29 @@
                         <Trash2 class="size-3.5" />
                     </button>
                 </div>
+                <DropdownMenu>
+                    <DropdownMenuTrigger as-child class="sm:hidden" @click.stop>
+                        <button
+                            class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                        >
+                            <MoreVertical class="size-4" />
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" @click.stop>
+                        <DropdownMenuItem @click="openFolderForm(folder)">
+                            <Pencil class="size-4" />
+                            Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                            class="text-destructive focus:text-destructive"
+                            @click="openDeleteFolderDialog(folder.id)"
+                        >
+                            <Trash2 class="size-4" />
+                            Delete
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
 
             <div
@@ -130,7 +153,7 @@
                     <Badge v-if="asset.isUsed" variant="secondary" class="text-xs"> used </Badge>
                     <span class="text-xs text-muted-foreground">{{ formatSize(asset.size) }}</span>
                 </div>
-                <div class="hidden group-hover:flex items-center gap-1 shrink-0">
+                <div class="hidden sm:group-hover:flex items-center gap-1 shrink-0">
                     <button
                         class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                         title="Rename"
@@ -146,6 +169,29 @@
                         <Trash2 class="size-3.5" />
                     </button>
                 </div>
+                <DropdownMenu>
+                    <DropdownMenuTrigger as-child class="sm:hidden" @click.stop>
+                        <button
+                            class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                        >
+                            <MoreVertical class="size-4" />
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" @click.stop>
+                        <DropdownMenuItem @click="openAssetEdit(asset)">
+                            <Pencil class="size-4" />
+                            Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                            class="text-destructive focus:text-destructive"
+                            @click="openDeleteAssetDialog(asset.id)"
+                        >
+                            <Trash2 class="size-4" />
+                            Delete
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
         </div>
 
@@ -160,7 +206,7 @@
                 <p class="text-xs font-medium truncate w-full text-center">
                     {{ folder.name }}
                 </p>
-                <div class="absolute top-2 right-2 hidden group-hover:flex gap-0.5">
+                <div class="absolute top-2 right-2 hidden sm:group-hover:flex gap-0.5">
                     <button
                         class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                         title="Rename"
@@ -176,6 +222,29 @@
                         <Trash2 class="size-3.5" />
                     </button>
                 </div>
+                <div class="absolute top-2 right-2 sm:hidden" @click.stop>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger as-child @click.stop>
+                            <button class="p-1 rounded bg-muted text-foreground transition-colors">
+                                <MoreVertical class="size-3.5" />
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" @click.stop>
+                            <DropdownMenuItem @click="openFolderForm(folder)">
+                                <Pencil class="size-4" />
+                                Rename
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                                class="text-destructive focus:text-destructive"
+                                @click="openDeleteFolderDialog(folder.id)"
+                            >
+                                <Trash2 class="size-4" />
+                                Delete
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
             </div>
 
             <div
@@ -186,7 +255,7 @@
             >
                 <img :src="asset.url" class="size-full object-cover bg-muted" />
                 <div
-                    class="absolute inset-0 flex flex-col justify-end p-2 transition-opacity opacity-0 group-hover:opacity-100"
+                    class="absolute inset-0 flex flex-col justify-end p-2 transition-opacity opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                     :style="{
                         background: 'linear-gradient(to top, rgba(0, 0, 0, 0.75), transparent 35%)',
                     }"
@@ -195,10 +264,10 @@
                         {{ asset.filename }}
                     </p>
                 </div>
-                <div v-if="asset.isUsed" class="absolute top-2 left-2">
+                <div v-if="asset.isUsed" class="absolute top-2 left-2 flex">
                     <Badge variant="secondary" class="text-xs">used</Badge>
                 </div>
-                <div class="absolute top-2 right-2 hidden group-hover:flex gap-0.5">
+                <div class="absolute top-2 right-2 hidden sm:group-hover:flex gap-0.5">
                     <button
                         class="p-1.5 rounded group-hover:bg-muted/50 hover:bg-muted text-foreground transition-colors"
                         title="Rename"
@@ -213,6 +282,29 @@
                     >
                         <Trash2 class="size-3.5" />
                     </button>
+                </div>
+                <div class="absolute top-2 right-2 sm:hidden" @click.stop>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger as-child @click.stop>
+                            <button class="p-1 rounded bg-muted text-foreground transition-colors">
+                                <MoreVertical class="size-3.5" />
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" @click.stop>
+                            <DropdownMenuItem @click="openAssetEdit(asset)">
+                                <Pencil class="size-4" />
+                                Rename
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                                class="text-destructive focus:text-destructive"
+                                @click="openDeleteAssetDialog(asset.id)"
+                            >
+                                <Trash2 class="size-4" />
+                                Delete
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </div>
         </div>
@@ -271,6 +363,7 @@
         Grid,
         ImageIcon,
         List,
+        MoreVertical,
         Pencil,
         Trash2,
         Upload,
@@ -291,6 +384,13 @@
         AlertDialogHeader,
         AlertDialogTitle,
     } from '@/components/ui/alert-dialog';
+    import {
+        DropdownMenu,
+        DropdownMenuContent,
+        DropdownMenuItem,
+        DropdownMenuSeparator,
+        DropdownMenuTrigger,
+    } from '@/components/ui/dropdown-menu';
     import { Badge } from '@/components/ui/badge';
     import { Button } from '@/components/ui/button';
     import { type Asset, useAssetsStore } from '@/stores/assets';

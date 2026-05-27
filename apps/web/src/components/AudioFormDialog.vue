@@ -109,7 +109,16 @@
 
                             <button
                                 v-if="coverPreview"
-                                class="absolute top-2 right-2 z-10 p-1.5 rounded group-hover:bg-muted/50 hover:bg-muted group-hover:text-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
+                                class="block sm:hidden absolute top-2 right-2 z-10 p-1.5 rounded bg-muted text-destructive"
+                                title="Remove cover"
+                                @click.stop="clearCover"
+                            >
+                                <Trash2 class="size-3.5" />
+                            </button>
+
+                            <button
+                                v-if="coverPreview"
+                                class="sm:block hidden absolute top-2 right-2 z-10 p-1.5 rounded group-hover:bg-muted/50 hover:bg-muted group-hover:text-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
                                 title="Remove cover"
                                 @click.stop="clearCover"
                             >

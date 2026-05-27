@@ -4,9 +4,10 @@
     </div>
 
     <div v-else class="flex flex-col gap-6">
-        <div class="flex items-center justify-between">
-            <div v-if="session.audio" class="flex items-center gap-3 min-w-0">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex items-center gap-3 min-w-0">
                 <div
+                    v-if="session.audio"
                     class="relative size-9 rounded-md bg-muted shrink-0 overflow-hidden flex items-center justify-center"
                 >
                     <img
@@ -17,31 +18,51 @@
                     <Music v-else class="size-4 text-muted-foreground" />
                 </div>
                 <div class="min-w-0">
-                    <p class="text-sm font-medium truncate">{{ session.audio.title }}</p>
-                    <p v-if="session.audio.artist" class="text-xs text-muted-foreground truncate">
+                    <!-- Mobile: session name as title -->
+                    <h2 class="text-xl font-semibold truncate sm:hidden">{{ sessionTitle }}</h2>
+                    <!-- Desktop: audio title (original) -->
+                    <p class="text-sm font-medium truncate hidden sm:block">
+                        {{ session.audio?.title }}
+                    </p>
+                    <!-- Mobile: audio info as description -->
+                    <p class="text-sm text-muted-foreground truncate mt-0.5 sm:hidden">
+                        {{
+                            session.audio
+                                ? session.audio.title +
+                                    (session.audio.artist ? ' – ' + session.audio.artist : '')
+                                : 'No audio track'
+                        }}
+                    </p>
+                    <!-- Desktop: artist (original) -->
+                    <p
+                        v-if="session.audio?.artist"
+                        class="text-xs text-muted-foreground truncate hidden sm:block"
+                    >
                         {{ session.audio.artist }}
                     </p>
                 </div>
             </div>
-            <div v-else />
 
-            <div class="flex items-center gap-1 shrink-0">
+            <div class="flex items-center gap-1">
+                <!-- Mobile: text button -->
                 <button
-                    class="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    class="sm:hidden inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm border border-border bg-muted/20 hover:bg-muted/40 text-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    :disabled="downloading || !completedVideos.length"
+                    @click="downloadAll"
+                >
+                    <Loader2 v-if="downloading" class="size-4 animate-spin" />
+                    <Download v-else class="size-4" />
+                    Download all
+                </button>
+                <!-- Desktop: icon button (original) -->
+                <button
+                    class="hidden sm:block p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     title="Download all videos"
                     :disabled="downloading || !completedVideos.length"
                     @click="downloadAll"
                 >
                     <Loader2 v-if="downloading" class="size-4 animate-spin" />
                     <Download v-else class="size-4" />
-                </button>
-
-                <button
-                    class="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                    title="Delete session"
-                    @click="deleteOpen = true"
-                >
-                    <Trash2 class="size-4" />
                 </button>
             </div>
         </div>
@@ -105,34 +126,13 @@
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>
-
-    <AlertDialog v-model:open="deleteOpen">
-        <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle>Delete session?</AlertDialogTitle>
-                <AlertDialogDescription
-                >The session will be deleted. Videos generated in this session will be
-                    kept.</AlertDialogDescription
-                >
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                    class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    @click="deleteSession"
-                >
-                    Delete
-                </AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-    </AlertDialog>
 </template>
 
 <script setup lang="ts">
     import { computed, onMounted, onUnmounted, ref } from 'vue';
     import { useRoute, useRouter } from 'vue-router';
     import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
-    import { Download, Film, Loader2, Music, Trash2 } from 'lucide-vue-next';
+    import { Download, Film, Loader2, Music } from 'lucide-vue-next';
     import {
         AlertDialog,
         AlertDialogAction,
@@ -157,6 +157,7 @@
     const breadcrumbsComposable = useBreadcrumbs();
 
     const session = computed(() => sessionsStore.current!);
+    const sessionTitle = computed(() => session.value.name || `Session #${session.value.index}`);
 
     const STATUS_ORDER: Record<string, number> = {
         QUEUED: 0,
@@ -176,7 +177,6 @@
     const completedVideos = computed(
         () => session.value?.videos?.filter((v) => v.status === 'COMPLETED' && v.videoUrl) ?? [],
     );
-    const deleteOpen = ref(false);
     const downloading = ref(false);
     const videoDialogOpen = ref(false);
     const deleteVideoOpen = ref(false);
@@ -259,11 +259,5 @@
         } finally {
             downloading.value = false;
         }
-    }
-
-    async function deleteSession() {
-        await sessionsStore.remove(session.value.id);
-        deleteOpen.value = false;
-        router.push('/create');
     }
 </script>

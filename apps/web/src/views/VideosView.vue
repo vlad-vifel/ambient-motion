@@ -37,6 +37,18 @@
             />
         </div>
 
+        <VideoEditDialog
+            :open="editDialogOpen"
+            :video="editVideo"
+            @update:open="
+                (v) => {
+                    editDialogOpen = v;
+                    if (!v) editVideo = null;
+                }
+            "
+            @requeued="videosStore.startPolling()"
+        />
+
         <VideoLightbox
             :open="lightboxOpen"
             :src="lightboxSrc"
@@ -82,6 +94,7 @@
         AlertDialogHeader,
         AlertDialogTitle,
     } from '@/components/ui/alert-dialog';
+    import VideoEditDialog from '@/components/VideoEditDialog.vue';
     import VideoLightbox from '@/components/VideoLightbox.vue';
     import VideoListItem from '@/components/VideoListItem.vue';
     import { useVideosStore } from '@/stores/videos';
@@ -112,6 +125,9 @@
     const deleteDialogOpen = ref(false);
     const deleteTargetId = ref<string | null>(null);
 
+    const editDialogOpen = ref(false);
+    const editVideo = ref<Video | null>(null);
+
     onMounted(() => {
         videosStore.startPolling();
         breadcrumbsComposable.setBreadcrumbs([{ label: 'Videos' }]);
@@ -135,8 +151,8 @@
     }
 
     function openEditDialog(video: Video) {
-        // TODO: implement edit functionality
-        console.log('Edit video:', video);
+        editVideo.value = video;
+        editDialogOpen.value = true;
     }
 
     async function doDelete() {

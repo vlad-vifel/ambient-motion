@@ -28,7 +28,7 @@
         <SliderThumb
             v-for="(_, key) in sliderValue"
             :key="key"
-            class="border-primary ring-ring/50 size-3 rounded-full border bg-white shadow-sm transition-[color,box-shadow,opacity] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden block shrink-0 select-none disabled:pointer-events-none disabled:opacity-50 opacity-0 group-hover:opacity-100"
+            class="border-primary ring-ring/50 size-3 rounded-full border bg-white shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden block shrink-0 select-none disabled:pointer-events-none disabled:opacity-50"
             data-slot="slider-thumb"
             :data-vertical="props.orientation === 'vertical' ? '' : undefined"
         />

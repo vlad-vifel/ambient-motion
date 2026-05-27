@@ -99,7 +99,7 @@
         User,
         Video,
     } from 'lucide-vue-next';
-    import { computed, ref } from 'vue';
+    import { computed, ref, watch } from 'vue';
     import { useRoute, useRouter } from 'vue-router';
     import { Avatar, AvatarFallback } from '@/components/ui/avatar';
     import {
@@ -120,6 +120,7 @@
         SidebarMenu,
         SidebarMenuButton,
         SidebarMenuItem,
+        useSidebar,
     } from '@/components/ui/sidebar';
     import { useAuthStore } from '@/stores/auth';
     import ProfileDialog from './ProfileDialog.vue';
@@ -129,6 +130,7 @@
     const router = useRouter();
     const auth = useAuthStore();
     const profileDialogOpen = ref(false);
+    const { isMobile, setOpenMobile } = useSidebar();
 
     const navItems = [
         { name: 'assets', path: '/assets', label: 'Assets', icon: ImageIcon },
@@ -136,6 +138,15 @@
         { name: 'videos', path: '/videos', label: 'Videos', icon: Video },
         { name: 'create', path: '/create', label: 'Create', icon: Sparkles },
     ];
+
+    watch(
+        () => route.path,
+        () => {
+            if (isMobile.value) {
+                setOpenMobile(false);
+            }
+        },
+    );
 
     const userEmail = computed(() => auth.user?.email ?? 'user@example.com');
     const userName = computed(() => auth.user?.name ?? 'User');

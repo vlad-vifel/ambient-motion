@@ -1,6 +1,6 @@
 <template>
     <div class="flex flex-col gap-6">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h2 class="text-xl font-semibold">Create</h2>
                 <p class="text-sm text-muted-foreground mt-0.5">
@@ -8,10 +8,12 @@
                 </p>
             </div>
 
-            <Button size="sm" @click="showCreate = true">
-                <Plus class="size-4" />
-                Create videos
-            </Button>
+            <div class="flex items-center gap-2">
+                <Button size="sm" @click="showCreate = true">
+                    <Plus class="size-4" />
+                    Create videos
+                </Button>
+            </div>
         </div>
 
         <div
@@ -57,7 +59,7 @@
                     </p>
                 </div>
 
-                <div class="hidden group-hover:flex items-center gap-1 shrink-0 ml-2">
+                <div class="hidden sm:group-hover:flex items-center gap-1 shrink-0 ml-2">
                     <button
                         class="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                         title="Delete"
@@ -66,6 +68,24 @@
                         <Trash2 class="size-3.5" />
                     </button>
                 </div>
+                <DropdownMenu>
+                    <DropdownMenuTrigger as-child class="sm:hidden" @click.stop>
+                        <button
+                            class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                        >
+                            <MoreVertical class="size-4" />
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" @click.stop>
+                        <DropdownMenuItem
+                            class="text-destructive focus:text-destructive"
+                            @click="startDelete(session.id)"
+                        >
+                            <Trash2 class="size-4" />
+                            Delete
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
         </div>
     </div>
@@ -94,7 +114,7 @@
 </template>
 
 <script setup lang="ts">
-    import { Clapperboard, Music, Plus, Trash2 } from 'lucide-vue-next';
+    import { Clapperboard, MoreVertical, Music, Plus, Trash2 } from 'lucide-vue-next';
     import { onMounted, onUnmounted, ref } from 'vue';
     import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
     import {
@@ -107,6 +127,12 @@
         AlertDialogHeader,
         AlertDialogTitle,
     } from '@/components/ui/alert-dialog';
+    import {
+        DropdownMenu,
+        DropdownMenuContent,
+        DropdownMenuItem,
+        DropdownMenuTrigger,
+    } from '@/components/ui/dropdown-menu';
     import { Button } from '@/components/ui/button';
     import { useSessionsStore } from '@/stores/sessions';
     import { useAudioStore } from '@/stores/audio';

@@ -29,7 +29,7 @@
 
         <div
             v-if="video.status !== 'QUEUED' && video.status !== 'GENERATING'"
-            class="hidden group-hover:flex items-center gap-0.5 shrink-0"
+            class="hidden sm:group-hover:flex items-center gap-0.5 shrink-0"
         >
             <button
                 v-if="video.status === 'COMPLETED' && video.videoUrl"
@@ -57,12 +57,58 @@
                 <Trash2 class="size-3.5" />
             </button>
         </div>
+
+        <DropdownMenu>
+            <DropdownMenuTrigger as-child class="sm:hidden" @click.stop>
+                <button
+                    class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                >
+                    <MoreVertical class="size-4" />
+                </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" @click.stop>
+                <DropdownMenuItem v-if="video.status === 'COMPLETED'" @click="$emit('edit')">
+                    <Pencil class="size-4" />
+                    Edit phrase
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                    v-if="video.status === 'COMPLETED' && video.videoUrl"
+                    @click="downloadVideo"
+                >
+                    <Download class="size-4" />
+                    Download
+                </DropdownMenuItem>
+                <DropdownMenuSeparator v-if="video.status === 'COMPLETED'" />
+                <DropdownMenuItem
+                    class="text-destructive focus:text-destructive"
+                    @click="$emit('delete')"
+                >
+                    <Trash2 class="size-4" />
+                    Delete
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
     </div>
 </template>
 
 <script setup lang="ts">
-    import { AlertCircle, Download, Film, Loader2, Pencil, Trash2 } from 'lucide-vue-next';
+    import {
+        AlertCircle,
+        Download,
+        Film,
+        Loader2,
+        MoreVertical,
+        Pencil,
+        Trash2,
+    } from 'lucide-vue-next';
     import type { Video } from '@/types/video';
+    import {
+        DropdownMenu,
+        DropdownMenuContent,
+        DropdownMenuItem,
+        DropdownMenuSeparator,
+        DropdownMenuTrigger,
+    } from '@/components/ui/dropdown-menu';
 
     const props = defineProps<{
         video: Video;

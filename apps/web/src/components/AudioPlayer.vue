@@ -3,25 +3,13 @@
         v-if="player.track"
         class="flex items-center gap-3 px-4 py-3 border-t border-border/50 bg-background shrink-0 select-none"
     >
-        <div class="flex-1 flex items-center gap-3 min-w-0 overflow-hidden">
-            <div
-                class="flex size-9 rounded-md bg-muted shrink-0 items-center justify-center overflow-hidden"
-            >
-                <img
-                    v-if="player.track.coverUrl"
-                    class="size-full object-cover"
-                    :src="player.track.coverUrl"
-                />
-                <Music v-else class="size-4 text-muted-foreground" />
-            </div>
-            <div class="min-w-0">
-                <p class="text-sm font-medium truncate leading-tight">
-                    {{ player.track.title }}
-                </p>
-                <p class="text-xs text-muted-foreground truncate leading-tight">
-                    {{ player.track.artist || '—' }}
-                </p>
-            </div>
+        <div class="flex-1 flex flex-col justify-center min-w-0 overflow-hidden">
+            <p class="text-sm font-medium truncate leading-tight">
+                {{ player.track.title }}
+            </p>
+            <p class="text-xs text-muted-foreground truncate leading-tight">
+                {{ player.track.artist || '—' }}
+            </p>
         </div>
 
         <div class="shrink-0 flex flex-col items-center gap-1.5">
@@ -142,16 +130,7 @@
 
 <script setup lang="ts">
     import { onClickOutside } from '@vueuse/core';
-    import {
-        Music,
-        Pause,
-        Play,
-        SkipBack,
-        SkipForward,
-        Volume1,
-        Volume2,
-        VolumeX,
-    } from 'lucide-vue-next';
+    import { Pause, Play, SkipBack, SkipForward, Volume1, Volume2, VolumeX } from 'lucide-vue-next';
     import { onUnmounted, ref } from 'vue';
     import { Slider } from '@/components/ui/slider';
     import { usePlayerStore } from '@/stores/player';
