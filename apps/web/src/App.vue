@@ -3,7 +3,6 @@
 
     onMounted(() => {
         try {
-            // @ts-expect-error missing type definitions
             import('@vercel/analytics/vue').then((mod) => {
                 if (mod?.Analytics && typeof mod.Analytics === 'function') {
                     mod.Analytics();
