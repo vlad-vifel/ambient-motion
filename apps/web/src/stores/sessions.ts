@@ -85,10 +85,18 @@ export const useSessionsStore = defineStore('sessions', () => {
         if (!sessionId) return;
 
         const tick = async () => {
-            const session = await fetchOne(sessionId);
-            updateVideos(sessionId, session.videos);
-            if (hasActiveJobs()) {
-                pollTimer = setTimeout(tick, intervalMs);
+            try {
+                const session = await fetchOne(sessionId);
+                updateVideos(sessionId, session.videos);
+                if (hasActiveJobs()) {
+                    pollTimer = setTimeout(tick, intervalMs);
+                }
+            } catch (err) {
+                console.error('[Sessions] Polling failed:', err);
+                // Continue polling even on error, but with increased backoff
+                if (hasActiveJobs()) {
+                    pollTimer = setTimeout(tick, intervalMs * 2);
+                }
             }
         };
         tick();
