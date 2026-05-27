@@ -255,6 +255,11 @@ h
                     >You can type theme or mood here to generate phrases</label
                     >
 
+                    <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
+                    <p v-if="validationMessage" class="text-sm text-yellow-600">
+                        {{ validationMessage }}
+                    </p>
+
                     <div class="flex flex-col gap-2">
                         <div v-for="(_, i) in phrases" :key="i" class="flex items-center gap-2">
                             <Input
@@ -281,11 +286,6 @@ h
                         Add phrase
                     </button>
                 </div>
-
-                <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
-                <p v-if="validationMessage" class="text-sm text-yellow-600">
-                    {{ validationMessage }}
-                </p>
             </div>
 
             <div class="px-6 py-4 shrink-0 border-border/50 flex items-center justify-end gap-2">
