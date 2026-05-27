@@ -6,7 +6,7 @@ let cached: Promise<string> | null = null;
 export function getBundle(): Promise<string> {
     if (!cached) {
         console.log(`[Bundle] Starting bundle process...`);
-        const entryPoint = path.resolve(__dirname, '../remotion/index.ts');
+        const entryPoint = path.resolve(__dirname, '../../src/remotion/index.ts');
         console.log(`[Bundle] Entry point: ${entryPoint}`);
 
         cached = bundle(entryPoint)
