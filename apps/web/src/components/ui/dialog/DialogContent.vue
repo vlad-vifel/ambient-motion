@@ -66,7 +66,7 @@
             e.preventDefault();
             return;
         }
-        emits('interactOutside', e);
+        (emits as any)('interactOutside', e);
     }
 
     function handlePointerDownOutside(e: Event) {
@@ -74,6 +74,6 @@
             e.preventDefault();
             return;
         }
-        emits('pointerDownOutside', e);
+        (emits as any)('pointerDownOutside', e);
     }
 </script>
