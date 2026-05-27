@@ -103,10 +103,19 @@ async function processJob(job: {
 
         console.log(`[Worker] Starting video render...`);
         try {
-            await renderVideo({ ...renderParams, outputPath: videoPath });
+            const renderTimeoutMs = 15 * 60 * 1000; // 15 minute timeout
+            const renderPromise = renderVideo({ ...renderParams, outputPath: videoPath });
+            const timeoutPromise = new Promise<never>((_resolve, reject) => {
+                setTimeout(() => {
+                    reject(new Error(`Video render timed out after ${renderTimeoutMs / 1000}s`));
+                }, renderTimeoutMs);
+            });
+
+            await Promise.race([renderPromise, timeoutPromise]);
             console.log(`[Worker] Video render completed`);
         } catch (err) {
-            console.error(`[Worker] Video render failed:`, err);
+            const message = err instanceof Error ? err.message : String(err);
+            console.error(`[Worker] Video render failed:`, message);
             throw err;
         }
 
