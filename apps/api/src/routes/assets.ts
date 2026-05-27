@@ -31,8 +31,9 @@ router.get('/', async (req: AuthRequest, res: Response) => {
         const assets = await prisma.asset.findMany({
             where,
             orderBy: { uploadedAt: 'desc' },
+            include: { _count: { select: { videos: true } } },
         });
-        res.json(assets);
+        res.json(assets.map(({ _count, ...a }) => ({ ...a, isUsed: _count.videos > 0 })));
     } catch {
         res.status(500).json({ error: 'Internal server error' });
     }

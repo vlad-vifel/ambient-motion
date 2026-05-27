@@ -43,7 +43,7 @@
         </div>
 
         <div
-            v-if="!audioStore.items.length"
+            v-if="!audioStore.loading && !audioStore.items.length"
             class="rounded-xl border border-border/50 bg-card p-12 flex flex-col items-center justify-center gap-4 text-center min-h-64"
         >
             <div class="size-12 rounded-full bg-muted flex items-center justify-center">
@@ -205,7 +205,8 @@
 
 <script setup lang="ts">
     import { Grid, List, Music, Pause, Pencil, Play, Trash2, Upload } from 'lucide-vue-next';
-    import { onMounted, ref } from 'vue';
+    import { onMounted, onUnmounted, ref } from 'vue';
+    import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
     import AudioFormDialog from '@/components/AudioFormDialog.vue';
     import {
         AlertDialog,
@@ -223,6 +224,7 @@
 
     const audioStore = useAudioStore();
     const player = usePlayerStore();
+    const breadcrumbsComposable = useBreadcrumbs();
 
     const dialogOpen = ref(false);
     const editTarget = ref<Audio | null>(null);
@@ -234,6 +236,11 @@
     onMounted(async () => {
         await audioStore.fetchAll();
         player.setPlaylist(audioStore.items);
+        breadcrumbsComposable.setBreadcrumbs([{ label: 'Audio' }]);
+    });
+
+    onUnmounted(() => {
+        breadcrumbsComposable.clearBreadcrumbs();
     });
 
     function onPlay(track: Audio) {

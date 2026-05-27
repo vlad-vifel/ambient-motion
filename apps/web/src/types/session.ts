@@ -11,6 +11,7 @@ export interface SessionAssetEntry {
 export interface GenerationSession {
     id: string;
     name: string | null;
+    index: number;
     durationMs: number;
     audioId: string | null;
     audio?: Audio | null;

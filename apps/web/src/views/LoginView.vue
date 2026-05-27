@@ -2,11 +2,7 @@
     <div class="min-h-screen flex items-center justify-center bg-background">
         <div class="w-full max-w-sm flex flex-col gap-4 px-4">
             <div class="flex flex-col items-center gap-2 text-center">
-                <div
-                    class="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm"
-                >
-                    AM
-                </div>
+                <Logo :size="40" class="text-foreground" />
                 <h1 class="text-2xl font-semibold tracking-tight">ambient motion</h1>
                 <p class="text-sm text-muted-foreground">
                     {{ mode === 'login' ? 'Log in to your account' : 'Create a new account' }}
@@ -104,6 +100,7 @@
     import { Alert, AlertTitle } from '@/components/ui/alert';
     import { Spinner } from '@/components/ui/spinner';
     import { useAuthStore } from '@/stores/auth';
+    import Logo from '@/components/Logo.vue';
 
     const router = useRouter();
     const auth = useAuthStore();

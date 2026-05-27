@@ -7,17 +7,20 @@ interface RenderThumbnailParams {
     audioUrl: string;
     phrase: string;
     durationMs: number;
+    fadeInMs: number;
+    fadeOutMs: number;
     outputPath: string;
 }
 
 export async function renderThumbnail(params: RenderThumbnailParams): Promise<void> {
-    const { presetId, imageUrl, audioUrl, phrase, durationMs, outputPath } = params;
+    const { presetId, imageUrl, audioUrl, phrase, durationMs, fadeInMs, fadeOutMs, outputPath } =
+        params;
 
     console.log(`[Thumbnail] Getting bundle...`);
     const serveUrl = await getBundle();
     console.log(`[Thumbnail] Bundle ready at ${serveUrl}`);
 
-    const inputProps = { imageUrl, audioUrl, phrase, durationMs };
+    const inputProps = { imageUrl, audioUrl, phrase, durationMs, fadeInMs, fadeOutMs };
 
     console.log(`[Thumbnail] Selecting composition ${presetId}...`);
     const composition = await selectComposition({

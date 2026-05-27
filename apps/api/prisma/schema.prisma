@@ -71,7 +71,10 @@ model Audio {
 model GenerationSession {
   id          String   @id @default(cuid())
   name        String?
+  index       Int      @default(0)
   durationMs  Int
+  fadeInMs    Int      @default(0)
+  fadeOutMs   Int      @default(0)
   createdAt   DateTime @default(now())
 
   audioId String?
@@ -127,6 +130,8 @@ model Video {
   sourceAudioUrl String  @default("")
 
   durationMs  Int    @default(30000)
+  fadeInMs    Int    @default(0)
+  fadeOutMs   Int    @default(0)
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)

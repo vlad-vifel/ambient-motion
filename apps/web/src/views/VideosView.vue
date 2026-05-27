@@ -7,12 +7,14 @@
                     All generated videos across sessions
                 </p>
             </div>
-
-            <div class="flex items-center gap-2"></div>
+            <Badge v-if="videosStore.items.length" variant="secondary">
+                {{ videosStore.items.length }}
+                {{ videosStore.items.length === 1 ? 'video' : 'videos' }}
+            </Badge>
         </div>
 
         <div
-            v-if="!videosStore.items.length"
+            v-if="!videosStore.loading && !videosStore.items.length"
             class="rounded-xl border border-border/50 bg-card p-12 flex flex-col items-center justify-center gap-4 text-center min-h-64"
         >
             <div class="size-12 rounded-full bg-muted flex items-center justify-center">
@@ -26,7 +28,7 @@
 
         <div v-else class="flex flex-col gap-2">
             <VideoListItem
-                v-for="video in videosStore.items"
+                v-for="video in sortedVideos"
                 :key="video.id"
                 :video="video"
                 @click="openVideo(video)"
@@ -67,7 +69,9 @@
 
 <script setup lang="ts">
     import { Film } from 'lucide-vue-next';
-    import { onMounted, onUnmounted, ref } from 'vue';
+    import { computed, onMounted, onUnmounted, ref } from 'vue';
+    import { Badge } from '@/components/ui/badge';
+    import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
     import {
         AlertDialog,
         AlertDialogAction,
@@ -84,6 +88,22 @@
     import type { Video } from '@/types/video';
 
     const videosStore = useVideosStore();
+    const breadcrumbsComposable = useBreadcrumbs();
+
+    const STATUS_ORDER: Record<string, number> = {
+        QUEUED: 0,
+        GENERATING: 1,
+        COMPLETED: 2,
+        FAILED: 2,
+    };
+
+    const sortedVideos = computed(() =>
+        [...videosStore.items].sort((a, b) => {
+            const od = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
+            if (od !== 0) return od;
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        }),
+    );
 
     const lightboxOpen = ref(false);
     const lightboxSrc = ref<string | null>(null);
@@ -94,10 +114,12 @@
 
     onMounted(() => {
         videosStore.startPolling();
+        breadcrumbsComposable.setBreadcrumbs([{ label: 'Videos' }]);
     });
 
     onUnmounted(() => {
         videosStore.stopPolling();
+        breadcrumbsComposable.clearBreadcrumbs();
     });
 
     function openVideo(video: Video) {

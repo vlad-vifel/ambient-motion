@@ -4,43 +4,45 @@
     </div>
 
     <div v-else class="flex flex-col gap-6">
-        <div class="flex items-center gap-3">
-            <button
-                class="p-1.5 rounded text-muted-foreground hover:text-foreground transition-colors"
-                @click="$router.push('/create')"
-            >
-                <ArrowLeft class="size-4" />
-            </button>
-
-            <h2 class="text-xl font-semibold flex-1 min-w-0 truncate">
-                {{ sessionLabel }}
-            </h2>
-
-            <button
-                class="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                title="Delete session"
-                @click="deleteOpen = true"
-            >
-                <Trash2 class="size-4" />
-            </button>
-        </div>
-
-        <div v-if="session.audio" class="flex items-center gap-3">
-            <div
-                class="relative size-9 rounded-md bg-muted shrink-0 overflow-hidden flex items-center justify-center"
-            >
-                <img
-                    v-if="session.audio.coverUrl"
-                    :src="session.audio.coverUrl"
-                    class="absolute inset-0 size-full object-cover"
-                />
-                <Music v-else class="size-4 text-muted-foreground" />
+        <div class="flex items-center justify-between">
+            <div v-if="session.audio" class="flex items-center gap-3 min-w-0">
+                <div
+                    class="relative size-9 rounded-md bg-muted shrink-0 overflow-hidden flex items-center justify-center"
+                >
+                    <img
+                        v-if="session.audio.coverUrl"
+                        :src="session.audio.coverUrl"
+                        class="absolute inset-0 size-full object-cover"
+                    />
+                    <Music v-else class="size-4 text-muted-foreground" />
+                </div>
+                <div class="min-w-0">
+                    <p class="text-sm font-medium truncate">{{ session.audio.title }}</p>
+                    <p v-if="session.audio.artist" class="text-xs text-muted-foreground truncate">
+                        {{ session.audio.artist }}
+                    </p>
+                </div>
             </div>
-            <div class="min-w-0">
-                <p class="text-sm font-medium truncate">{{ session.audio.title }}</p>
-                <p v-if="session.audio.artist" class="text-xs text-muted-foreground truncate">
-                    {{ session.audio.artist }}
-                </p>
+            <div v-else />
+
+            <div class="flex items-center gap-1 shrink-0">
+                <button
+                    class="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    title="Download all videos"
+                    :disabled="downloading || !completedVideos.length"
+                    @click="downloadAll"
+                >
+                    <Loader2 v-if="downloading" class="size-4 animate-spin" />
+                    <Download v-else class="size-4" />
+                </button>
+
+                <button
+                    class="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                    title="Delete session"
+                    @click="deleteOpen = true"
+                >
+                    <Trash2 class="size-4" />
+                </button>
             </div>
         </div>
 
@@ -54,7 +56,7 @@
 
         <div v-else class="flex flex-col gap-2">
             <VideoListItem
-                v-for="video in session.videos"
+                v-for="video in sortedVideos"
                 :key="video.id"
                 :video="video"
                 @click="openVideo(video)"
@@ -129,7 +131,8 @@
 <script setup lang="ts">
     import { computed, onMounted, onUnmounted, ref } from 'vue';
     import { useRoute, useRouter } from 'vue-router';
-    import { ArrowLeft, Film, Music, Trash2 } from 'lucide-vue-next';
+    import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
+    import { Download, Film, Loader2, Music, Trash2 } from 'lucide-vue-next';
     import {
         AlertDialog,
         AlertDialogAction,
@@ -151,9 +154,30 @@
     const router = useRouter();
     const sessionsStore = useSessionsStore();
     const videosStore = useVideosStore();
+    const breadcrumbsComposable = useBreadcrumbs();
 
     const session = computed(() => sessionsStore.current!);
+
+    const STATUS_ORDER: Record<string, number> = {
+        QUEUED: 0,
+        GENERATING: 1,
+        COMPLETED: 2,
+        FAILED: 2,
+    };
+    const sortedVideos = computed(() => {
+        if (!session.value?.videos) return [];
+        return [...session.value.videos].sort((a, b) => {
+            const od = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
+            if (od !== 0) return od;
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+    });
+
+    const completedVideos = computed(
+        () => session.value?.videos?.filter((v) => v.status === 'COMPLETED' && v.videoUrl) ?? [],
+    );
     const deleteOpen = ref(false);
+    const downloading = ref(false);
     const videoDialogOpen = ref(false);
     const deleteVideoOpen = ref(false);
     const editDialogOpen = ref(false);
@@ -161,20 +185,28 @@
     const editVideo = ref<Video | null>(null);
     const deleteVideoId = ref('');
 
-    const sessionLabel = computed(() => {
-        if (session.value.name) return session.value.name;
-        const idx = sessionsStore.items.findIndex((s) => s.id === session.value.id);
-        const num = idx === -1 ? session.value.id.slice(-4) : sessionsStore.items.length - 1 - idx;
-        return `Session #${num}`;
-    });
-
     onMounted(async () => {
+        const cached = sessionsStore.items.find((s) => s.id === route.params.id);
+        const cachedLabel = cached ? cached.name || `Session #${cached.index}` : '...';
+        breadcrumbsComposable.setBreadcrumbs([
+            { label: 'Create', onClick: () => router.push('/create') },
+            { label: cachedLabel },
+        ]);
+
         await sessionsStore.fetchOne(route.params.id as string);
+        if (sessionsStore.current) {
+            const name = sessionsStore.current.name || `Session #${sessionsStore.current.index}`;
+            breadcrumbsComposable.setBreadcrumbs([
+                { label: 'Create', onClick: () => router.push('/create') },
+                { label: name },
+            ]);
+        }
         sessionsStore.startPolling();
     });
 
     onUnmounted(() => {
         sessionsStore.stopPolling();
+        breadcrumbsComposable.clearBreadcrumbs();
     });
 
     function openVideo(video: Video) {
@@ -201,6 +233,32 @@
             );
         }
         deleteVideoOpen.value = false;
+    }
+
+    async function downloadAll() {
+        if (downloading.value || !completedVideos.value.length) return;
+        downloading.value = true;
+        try {
+            const apiBase = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+            const token = localStorage.getItem('token');
+            for (const video of completedVideos.value) {
+                const response = await fetch(`${apiBase}/api/videos/${video.id}/download`, {
+                    headers: token ? { Authorization: `Bearer ${token}` } : {},
+                });
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `${video.phrase}.mp4`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                await new Promise((r) => setTimeout(r, 300));
+            }
+        } finally {
+            downloading.value = false;
+        }
     }
 
     async function deleteSession() {

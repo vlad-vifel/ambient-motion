@@ -8,6 +8,7 @@ h
         >
             <DialogHeader class="px-6 pt-6 pb-4 shrink-0">
                 <DialogTitle>Create videos</DialogTitle>
+                <DialogDescription class="sr-only">Dialog</DialogDescription>
             </DialogHeader>
 
             <div class="px-6 flex flex-col gap-5 overflow-y-auto min-h-0">
@@ -81,6 +82,38 @@ h
                             </SelectItem>
                         </SelectContent>
                     </Select>
+                    <MiniAudioPlayer
+                        v-if="selectedAudio?.url"
+                        :key="selectedAudio.id"
+                        :src="selectedAudio.url"
+                        :duration-ms="selectedAudio.duration"
+                    />
+                </div>
+
+                <div v-if="form.audioId" class="flex flex-col gap-1.5">
+                    <label class="flex items-center text-xs text-muted-foreground"
+                    >Fade in / out</label
+                    >
+                    <div
+                        class="flex items-center gap-2 px-2 py-3 rounded-md border border-border bg-muted/30"
+                    >
+                        <span
+                            class="text-xs text-muted-foreground tabular-nums w-7 text-right shrink-0"
+                        >
+                            {{ formatDuration(fadeRange[0]) }}
+                        </span>
+                        <Slider
+                            class="flex-1"
+                            :min="0"
+                            :max="selectedAudio ? selectedAudio.duration : 60000"
+                            :step="100"
+                            :model-value="fadeRange"
+                            @update:model-value="(v) => v && (fadeRange = v as [number, number])"
+                        />
+                        <span class="text-xs text-muted-foreground tabular-nums w-7 shrink-0">
+                            {{ formatDuration(fadeRange[1]) }}
+                        </span>
+                    </div>
                 </div>
 
                 <div class="flex flex-col gap-1.5">
@@ -96,8 +129,8 @@ h
                                     <Folder v-else class="size-4 text-muted-foreground" />
                                     <span>{{
                                         form.assetSource === 'all'
-                                            ? `All assets (${totalAssetCount})`
-                                            : `${foldersStore.items.find((f) => f.id === form.assetSource)?.name} (${assetCountByFolder[form.assetSource] ?? 0})`
+                                            ? `All assets${dataLoaded ? ` (${totalAssetCount} available)` : ''}`
+                                            : `${foldersStore.items.find((f) => f.id === form.assetSource)?.name}${dataLoaded ? ` (${assetCountByFolder[form.assetSource] ?? 0} available)` : ''}`
                                     }}</span>
                                 </div>
                                 <span v-else class="text-muted-foreground">Select assets</span>
@@ -107,7 +140,11 @@ h
                             <SelectItem value="all">
                                 <div class="flex items-center gap-2">
                                     <Folders class="size-4 text-muted-foreground" />
-                                    <span>All assets ({{ totalAssetCount }})</span>
+                                    <span
+                                    >All assets{{
+                                        dataLoaded ? ` (${totalAssetCount} available)` : ''
+                                    }}</span
+                                    >
                                 </div>
                             </SelectItem>
                             <SelectItem
@@ -118,9 +155,12 @@ h
                                 <div class="flex items-center gap-2">
                                     <Folder class="size-4 text-muted-foreground" />
                                     <span
-                                    >{{ folder.name }} ({{
-                                        assetCountByFolder[folder.id] ?? 0
-                                    }})</span
+                                    >{{ folder.name
+                                    }}{{
+                                        dataLoaded
+                                            ? ` (${assetCountByFolder[folder.id] ?? 0} available)`
+                                            : ''
+                                    }}</span
                                     >
                                 </div>
                             </SelectItem>
@@ -274,9 +314,17 @@ h
     import type { Component } from 'vue';
     import { computed, reactive, ref, watch } from 'vue';
     import { useRouter } from 'vue-router';
+    import MiniAudioPlayer from '@/components/MiniAudioPlayer.vue';
     import { Badge } from '@/components/ui/badge';
+    import { Slider } from '@/components/ui/slider';
     import { Button } from '@/components/ui/button';
-    import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+    import {
+        Dialog,
+        DialogContent,
+        DialogHeader,
+        DialogTitle,
+        DialogDescription,
+    } from '@/components/ui/dialog';
     import { Input } from '@/components/ui/input';
     import {
         NumberField,
@@ -330,9 +378,11 @@ h
     const error = ref('');
     const phrases = ref<string[]>(['']);
     const allAssets = ref<Asset[]>([]);
+    const dataLoaded = ref(false);
     const aiTheme = ref('');
     const aiCount = ref(3);
     const generatingPhrases = ref(false);
+    const fadeRange = ref<[number, number]>([0, 0]);
 
     const form = reactive({
         audioId: '',
@@ -344,6 +394,12 @@ h
         () => audioStore.items.find((t) => t.id === form.audioId) ?? null,
     );
 
+    watch(selectedAudio, (audio) => {
+        if (audio) {
+            fadeRange.value = [0, audio.duration];
+        }
+    });
+
     const selectedPreset = computed(
         () => presetsStore.items.find((p) => p.id === form.presetId) ?? null,
     );
@@ -352,18 +408,21 @@ h
 
     const assetCountByFolder = computed(() => {
         const counts: Record<string, number> = {};
-        for (const asset of allAssets.value) {
+        for (const asset of allAssets.value.filter((a) => !a.isUsed)) {
             const folderId = asset.folderId || 'none';
             counts[folderId] = (counts[folderId] ?? 0) + 1;
         }
         return counts;
     });
 
-    const totalAssetCount = computed(() => allAssets.value.length);
+    const totalAssetCount = computed(() => allAssets.value.filter((a) => !a.isUsed).length);
 
     const resolvedAssetIds = computed(() => {
-        if (form.assetSource === 'all') return allAssets.value.map((a) => a.id);
-        return allAssets.value.filter((a) => a.folderId === form.assetSource).map((a) => a.id);
+        if (form.assetSource === 'all')
+            return allAssets.value.filter((a) => !a.isUsed).map((a) => a.id);
+        return allAssets.value
+            .filter((a) => a.folderId === form.assetSource && !a.isUsed)
+            .map((a) => a.id);
     });
 
     const canSubmit = computed(
@@ -397,6 +456,7 @@ h
                         allAssets.value = res.data;
                     }),
                 ]);
+                dataLoaded.value = true;
             } else {
                 form.audioId = '';
                 form.assetSource = 'all';
@@ -404,8 +464,10 @@ h
                 phrases.value = [''];
                 error.value = '';
                 allAssets.value = [];
+                dataLoaded.value = false;
                 aiTheme.value = '';
                 aiCount.value = 3;
+                fadeRange.value = [0, 0];
             }
         },
     );
@@ -458,6 +520,8 @@ h
                 audioId: form.audioId,
                 assetIds: resolvedAssetIds.value,
                 durationMs,
+                fadeInMs: fadeRange.value[0],
+                fadeOutMs: durationMs - fadeRange.value[1],
                 presetId: form.presetId,
             });
             const filled = phrases.value.filter((p) => p.trim());

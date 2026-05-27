@@ -56,11 +56,13 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
 router.post('/', async (req: AuthRequest, res: Response) => {
     try {
-        const { name, audioId, assetIds, durationMs, presetId } = req.body as {
+        const { name, audioId, assetIds, durationMs, fadeInMs, fadeOutMs, presetId } = req.body as {
             name?: string;
             audioId: string;
             assetIds: string[];
             durationMs: number;
+            fadeInMs?: number;
+            fadeOutMs?: number;
             presetId: string;
         };
 
@@ -86,10 +88,17 @@ router.post('/', async (req: AuthRequest, res: Response) => {
             return;
         }
 
+        const sessionCount = await prisma.generationSession.count({
+            where: { userId: req.userId! },
+        });
+
         const session = await prisma.generationSession.create({
             data: {
                 name: name ?? null,
+                index: sessionCount,
                 durationMs,
+                fadeInMs: fadeInMs ?? 0,
+                fadeOutMs: fadeOutMs ?? 0,
                 audioId,
                 presetId,
                 userId: req.userId!,
@@ -222,11 +231,13 @@ router.post('/:id/generate', async (req: AuthRequest, res: Response) => {
         const audioStorageKey = `audio/${session.audio.filename}`;
         const sourceAudioUrl = generateSignedUrl(audioStorageKey, req.userId!, 24 * 3600);
 
-        const shuffledAssets = session.assets.sort(() => Math.random() - 0.5);
+        const shuffledAssets = [...session.assets].sort(() => Math.random() - 0.5);
+
+        const limitedPhrases = phrases.slice(0, shuffledAssets.length);
 
         const jobs = await Promise.all(
-            phrases.map(async (phrase, index) => {
-                const randomAsset = shuffledAssets[index % shuffledAssets.length].asset;
+            limitedPhrases.map(async (phrase: string, index: number) => {
+                const randomAsset = shuffledAssets[index].asset;
                 const sourceImageUrl = generateSignedUrl(
                     randomAsset.storageKey,
                     req.userId!,
@@ -245,6 +256,8 @@ router.post('/:id/generate', async (req: AuthRequest, res: Response) => {
                         audioId: session.audioId,
                         sourceAudioUrl,
                         durationMs: session.durationMs,
+                        fadeInMs: session.fadeInMs,
+                        fadeOutMs: session.fadeOutMs,
                         userId: req.userId!,
                     },
                 });

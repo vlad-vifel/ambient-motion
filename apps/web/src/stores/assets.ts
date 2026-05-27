@@ -11,6 +11,7 @@ export interface Asset {
     uploadedAt: string;
     userId: string;
     folderId: string | null;
+    isUsed: boolean;
 }
 
 export const useAssetsStore = defineStore('assets', () => {

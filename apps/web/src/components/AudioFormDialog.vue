@@ -7,6 +7,7 @@
         >
             <DialogHeader class="px-6 pt-6 pb-4">
                 <DialogTitle>{{ editTarget ? 'Edit audio' : 'Upload audio' }}</DialogTitle>
+                <DialogDescription class="sr-only">Dialog</DialogDescription>
             </DialogHeader>
 
             <div class="px-6 pb-6 flex flex-col gap-5">
@@ -151,7 +152,13 @@
     import { Asterisk, ImageIcon, Loader2, Music, Trash2 } from 'lucide-vue-next';
     import { computed, ref, watch } from 'vue';
     import { Button } from '@/components/ui/button';
-    import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+    import {
+        Dialog,
+        DialogContent,
+        DialogHeader,
+        DialogTitle,
+        DialogDescription,
+    } from '@/components/ui/dialog';
     import { Input } from '@/components/ui/input';
     import { type Audio, useAudioStore } from '@/stores/audio';
 

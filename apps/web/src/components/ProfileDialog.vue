@@ -3,6 +3,7 @@
         <DialogContent class="sm:max-w-md" :disable-outside-close="false">
             <DialogHeader>
                 <DialogTitle>Edit profile</DialogTitle>
+                <DialogDescription class="sr-only">Dialog</DialogDescription>
             </DialogHeader>
 
             <div class="flex flex-col gap-4">
@@ -58,7 +59,13 @@
     import { computed, reactive, ref, watch } from 'vue';
     import { useAuthStore } from '@/stores/auth';
     import { Button } from '@/components/ui/button';
-    import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+    import {
+        Dialog,
+        DialogContent,
+        DialogHeader,
+        DialogTitle,
+        DialogDescription,
+    } from '@/components/ui/dialog';
     import { Input } from '@/components/ui/input';
     import { Separator } from '@/components/ui/separator';
     import Spinner from './ui/spinner/Spinner.vue';

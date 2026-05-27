@@ -3,13 +3,9 @@
         <SidebarHeader>
             <SidebarMenu>
                 <SidebarMenuItem>
-                    <SidebarMenuButton as-child size="lg">
+                    <SidebarMenuButton as-child size="lg" class="h-10">
                         <RouterLink to="/">
-                            <div
-                                class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground"
-                            >
-                                <span class="text-xs font-bold">AM</span>
-                            </div>
+                            <Logo :size="24" class="text-foreground" />
                             <span class="font-semibold text-sm">ambient motion</span>
                         </RouterLink>
                     </SidebarMenuButton>
@@ -39,21 +35,15 @@
                 <SidebarMenuItem>
                     <DropdownMenu>
                         <DropdownMenuTrigger as-child>
-                            <SidebarMenuButton class="cursor-pointer" size="lg">
-                                <Avatar class="size-7 rounded-full">
+                            <SidebarMenuButton class="cursor-pointer">
+                                <Avatar class="size-6 rounded-full">
                                     <AvatarFallback
-                                        class="rounded-full bg-sidebar-accent text-sidebar-accent-foreground text-xs"
+                                        class="rounded-full bg-sidebar-accent text-sidebar-accent-foreground text-[10px]"
                                     >
                                         {{ userInitials }}
                                     </AvatarFallback>
                                 </Avatar>
-                                <div class="flex flex-col leading-none min-w-0">
-                                    <span class="text-sm font-medium truncate">{{ userName }}</span>
-                                    <span
-                                        class="text-xs text-muted-foreground font-normal truncate"
-                                    >{{ userEmail }}</span
-                                    >
-                                </div>
+                                <span class="text-sm font-medium truncate">{{ userName }}</span>
                                 <ChevronsUpDown
                                     class="ml-auto size-4 text-muted-foreground shrink-0"
                                 />
@@ -133,6 +123,7 @@
     } from '@/components/ui/sidebar';
     import { useAuthStore } from '@/stores/auth';
     import ProfileDialog from './ProfileDialog.vue';
+    import Logo from './Logo.vue';
 
     const route = useRoute();
     const router = useRouter();

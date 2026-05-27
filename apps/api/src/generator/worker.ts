@@ -37,6 +37,8 @@ async function loop(): Promise<void> {
                 sourceAudioUrl: true,
                 phrase: true,
                 durationMs: true,
+                fadeInMs: true,
+                fadeOutMs: true,
                 userId: true,
                 presetId: true,
             },
@@ -64,6 +66,8 @@ async function processJob(job: {
     sourceAudioUrl: string;
     phrase: string;
     durationMs: number;
+    fadeInMs: number;
+    fadeOutMs: number;
     userId: string;
     presetId: string;
 }): Promise<void> {
@@ -93,6 +97,8 @@ async function processJob(job: {
             audioUrl: job.sourceAudioUrl,
             phrase: job.phrase,
             durationMs: job.durationMs,
+            fadeInMs: job.fadeInMs,
+            fadeOutMs: job.fadeOutMs,
         };
 
         console.log(`[Worker] Starting video render...`);

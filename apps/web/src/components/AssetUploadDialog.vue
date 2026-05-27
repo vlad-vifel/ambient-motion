@@ -9,6 +9,7 @@
                 <DialogTitle>
                     Upload assets{{ folderName ? ` to ${folderName} (folder)` : '' }}
                 </DialogTitle>
+                <DialogDescription class="sr-only">Dialog</DialogDescription>
             </DialogHeader>
 
             <div class="px-6 pb-6 flex flex-col gap-4">
@@ -98,7 +99,13 @@
     import { ImageIcon, Loader2, Trash2 } from 'lucide-vue-next';
     import { ref, watch } from 'vue';
     import { Button } from '@/components/ui/button';
-    import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+    import {
+        Dialog,
+        DialogContent,
+        DialogHeader,
+        DialogTitle,
+        DialogDescription,
+    } from '@/components/ui/dialog';
     import { useAssetsStore } from '@/stores/assets';
     import AssetLightbox from './AssetLightbox.vue';
 

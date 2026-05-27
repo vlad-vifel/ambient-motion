@@ -16,21 +16,28 @@ interface MelancholicVideoProps {
     audioUrl: string;
     phrase: string;
     durationMs: number;
+    fadeInMs: number;
+    fadeOutMs: number;
 }
 
 export const MelancholicVideo: React.FC<MelancholicVideoProps> = ({
     imageUrl,
     audioUrl,
     phrase,
+    fadeInMs,
+    fadeOutMs,
 }) => {
     const frame = useCurrentFrame();
     const { fps, durationInFrames, width } = useVideoConfig();
 
-    const fadeFrames = Math.round(2.5 * fps);
+    const fadeInFrames = Math.max(1, Math.round((fadeInMs / 1000) * fps));
+    const fadeOutFrames = Math.max(1, Math.round((fadeOutMs / 1000) * fps));
+    const endFade = Math.max(durationInFrames - fadeOutFrames, fadeInFrames + 1);
+    const lastFrame = Math.max(endFade + 1, durationInFrames - 1);
 
     const blackOpacity = interpolate(
         frame,
-        [0, fadeFrames, durationInFrames - fadeFrames, durationInFrames - fps / 5],
+        [0, fadeInFrames, endFade, lastFrame],
         [1, 0.2, 0.2, 1],
         { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
     );

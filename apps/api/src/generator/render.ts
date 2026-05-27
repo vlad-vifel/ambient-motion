@@ -7,17 +7,20 @@ interface RenderVideoParams {
     audioUrl: string;
     phrase: string;
     durationMs: number;
+    fadeInMs: number;
+    fadeOutMs: number;
     outputPath: string;
 }
 
 export async function renderVideo(params: RenderVideoParams): Promise<void> {
-    const { presetId, imageUrl, audioUrl, phrase, durationMs, outputPath } = params;
+    const { presetId, imageUrl, audioUrl, phrase, durationMs, fadeInMs, fadeOutMs, outputPath } =
+        params;
 
     console.log(`[Render] Getting bundle...`);
     const serveUrl = await getBundle();
     console.log(`[Render] Bundle ready at ${serveUrl}`);
 
-    const inputProps = { imageUrl, audioUrl, phrase, durationMs };
+    const inputProps = { imageUrl, audioUrl, phrase, durationMs, fadeInMs, fadeOutMs };
 
     console.log(`[Render] Selecting composition ${presetId}...`);
     const composition = await selectComposition({

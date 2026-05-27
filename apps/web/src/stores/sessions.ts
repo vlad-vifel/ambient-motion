@@ -31,6 +31,8 @@ export const useSessionsStore = defineStore('sessions', () => {
         audioId: string;
         assetIds: string[];
         durationMs: number;
+        fadeInMs: number;
+        fadeOutMs: number;
         presetId: string;
     }): Promise<GenerationSession> {
         const { data } = await api.post<GenerationSession>('/api/sessions', payload);

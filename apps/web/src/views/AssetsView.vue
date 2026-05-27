@@ -2,17 +2,7 @@
     <div class="flex flex-col gap-6">
         <div class="flex items-center justify-between">
             <div>
-                <div v-if="currentFolder" class="flex items-center gap-2">
-                    <button
-                        class="text-muted-foreground hover:text-foreground transition-colors text-xl font-semibold"
-                        @click="exitFolder"
-                    >
-                        Assets
-                    </button>
-                    <span class="text-muted-foreground">></span>
-                    <h2 class="text-xl font-semibold">{{ currentFolder.name }}</h2>
-                </div>
-                <h2 v-else class="text-xl font-semibold">Assets</h2>
+                <h2 class="text-xl font-semibold">{{ currentFolder?.name || 'Assets' }}</h2>
                 <p class="text-sm text-muted-foreground mt-0.5">Your assets for video generation</p>
             </div>
 
@@ -68,7 +58,7 @@
         </div>
 
         <div
-            v-if="!assetsStore.items.length"
+            v-if="!isLoading && !assetsStore.items.length"
             class="rounded-xl border border-border/50 bg-card p-12 flex flex-col items-center justify-center gap-4 text-center min-h-64"
         >
             <div class="size-12 rounded-full bg-muted flex items-center justify-center">
@@ -137,9 +127,7 @@
                     <p class="text-sm font-medium truncate">{{ asset.filename }}</p>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
-                    <Badge v-if="usedAssetIds.has(asset.id)" variant="secondary" class="text-xs">
-                        used
-                    </Badge>
+                    <Badge v-if="asset.isUsed" variant="secondary" class="text-xs"> used </Badge>
                     <span class="text-xs text-muted-foreground">{{ formatSize(asset.size) }}</span>
                 </div>
                 <div class="hidden group-hover:flex items-center gap-1 shrink-0">
@@ -207,7 +195,7 @@
                         {{ asset.filename }}
                     </p>
                 </div>
-                <div v-if="usedAssetIds.has(asset.id)" class="absolute top-2 left-2">
+                <div v-if="asset.isUsed" class="absolute top-2 left-2">
                     <Badge variant="secondary" class="text-xs">used</Badge>
                 </div>
                 <div class="absolute top-2 right-2 hidden group-hover:flex gap-0.5">
@@ -243,7 +231,7 @@
             :open="lightboxOpen"
             :src="lightboxSrc"
             :filename="lightboxFilename"
-            :is-used="lightboxAssetId ? usedAssetIds.has(lightboxAssetId) : false"
+            :is-used="lightboxIsUsed"
             @update:open="lightboxOpen = $event"
         />
 
@@ -287,7 +275,8 @@
         Trash2,
         Upload,
     } from 'lucide-vue-next';
-    import { computed, onMounted, ref } from 'vue';
+    import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+    import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
     import AssetEditDialog from '@/components/AssetEditDialog.vue';
     import AssetLightbox from '@/components/AssetLightbox.vue';
     import AssetUploadDialog from '@/components/AssetUploadDialog.vue';
@@ -306,11 +295,10 @@
     import { Button } from '@/components/ui/button';
     import { type Asset, useAssetsStore } from '@/stores/assets';
     import { type Folder as FolderType, useFoldersStore } from '@/stores/folders';
-    import { useVideosStore } from '@/stores/videos';
 
     const assetsStore = useAssetsStore();
     const foldersStore = useFoldersStore();
-    const videosStore = useVideosStore();
+    const breadcrumbsComposable = useBreadcrumbs();
 
     const viewMode = ref<'list' | 'grid'>('list');
     const currentFolder = ref<FolderType | null>(null);
@@ -324,7 +312,7 @@
     const lightboxOpen = ref(false);
     const lightboxSrc = ref<string | null>(null);
     const lightboxFilename = ref('');
-    const lightboxAssetId = ref<string | null>(null);
+    const lightboxIsUsed = ref(false);
 
     const deleteDialogOpen = ref(false);
     const deleteTarget = ref<{ type: 'asset' | 'folder'; id: string } | null>(null);
@@ -334,20 +322,28 @@
 
     const isLoading = computed(() => assetsStore.loading || foldersStore.loading);
 
-    const usedAssetIds = computed(() => {
-        return new Set(videosStore.items.filter((v) => v.assetId).map((v) => v.assetId!));
+    watch(currentFolder, () => {
+        if (currentFolder.value) {
+            breadcrumbsComposable.setBreadcrumbs([
+                { label: 'Assets', onClick: exitFolder },
+                { label: currentFolder.value.name },
+            ]);
+        } else {
+            breadcrumbsComposable.setBreadcrumbs([{ label: 'Assets' }]);
+        }
     });
 
     onMounted(async () => {
         try {
-            await Promise.all([
-                foldersStore.fetchAll(),
-                assetsStore.fetchAll(null),
-                videosStore.fetchAll(),
-            ]);
+            await Promise.all([foldersStore.fetchAll(), assetsStore.fetchAll(null)]);
         } finally {
             initialLoading.value = false;
         }
+        breadcrumbsComposable.setBreadcrumbs([{ label: 'Assets' }]);
+    });
+
+    onUnmounted(() => {
+        breadcrumbsComposable.clearBreadcrumbs();
     });
 
     async function enterFolder(folder: FolderType) {
@@ -375,7 +371,7 @@
     function openLightbox(asset: Asset) {
         lightboxSrc.value = asset.url;
         lightboxFilename.value = asset.filename;
-        lightboxAssetId.value = asset.id;
+        lightboxIsUsed.value = asset.isUsed;
         lightboxOpen.value = true;
     }
 
