@@ -10,8 +10,8 @@
                 )
             "
             data-slot="dialog-content"
-            @interact-outside="handleInteractOutside"
-            @pointer-down-outside="handlePointerDownOutside"
+            @interact-outside="(e: any) => handleInteractOutside(e)"
+            @pointer-down-outside="(e: any) => handlePointerDownOutside(e)"
         >
             <slot />
 
@@ -53,7 +53,9 @@
             disableOutsideClose: false,
         },
     );
-    const emits = defineEmits<DialogContentEmits>();
+    const emits = defineEmits<
+        DialogContentEmits & { interactOutside: [e: Event]; pointerDownOutside: [e: Event] }
+    >();
 
     const delegatedProps = reactiveOmit(props, 'class', 'disableOutsideClose');
 
