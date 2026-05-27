@@ -54,13 +54,13 @@
                     @update:model-value="
                         (v) => {
                             if (v && v[0] !== undefined) {
-                                player.seek((v[0] / 100) * player.duration);
+                                player.seek((v[0] / 100) * ((player.track?.duration ?? 0) / 1000));
                             }
                         }
                     "
                 />
                 <span class="text-[10px] text-muted-foreground tabular-nums w-8 shrink-0">
-                    {{ formatTime(player.duration) }}
+                    {{ formatTime((player.track?.duration ?? 0) / 1000) }}
                 </span>
             </div>
         </div>
@@ -149,8 +149,9 @@
 
     function formatTime(seconds: number) {
         if (!seconds || isNaN(seconds)) return '0:00';
-        const m = Math.floor(seconds / 60);
-        const s = Math.floor(seconds % 60);
+        const total = Math.round(seconds);
+        const m = Math.floor(total / 60);
+        const s = total % 60;
         return `${m}:${s.toString().padStart(2, '0')}`;
     }
 
