@@ -9,16 +9,28 @@ export function getBundle(): Promise<string> {
         const entryPoint = path.resolve(__dirname, '../../src/remotion/index.ts');
         console.log(`[Bundle] Entry point: ${entryPoint}`);
 
-        cached = bundle(entryPoint)
-            .then((url) => {
-                console.log(`[Bundle] Bundle succeeded, URL: ${url}`);
+        const bundleStart = Date.now();
+        const bundlePromise = bundle(entryPoint);
+
+        cached = Promise.race([
+            bundlePromise.then((url) => {
+                const duration = Date.now() - bundleStart;
+                console.log(`[Bundle] Bundle succeeded in ${duration}ms, URL: ${url}`);
                 return url;
-            })
-            .catch((err) => {
-                console.error(`[Bundle] Bundle failed:`, err);
-                cached = null;
-                throw err;
-            });
+            }),
+            new Promise<string>((_resolve, reject) => {
+                setTimeout(
+                    () => {
+                        reject(new Error('[Bundle] Bundle process timed out after 5 minutes'));
+                    },
+                    5 * 60 * 1000,
+                );
+            }),
+        ]).catch((err) => {
+            console.error(`[Bundle] Bundle failed:`, err);
+            cached = null;
+            throw err;
+        });
     }
     return cached;
 }
