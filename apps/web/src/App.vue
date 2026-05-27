@@ -2,8 +2,7 @@
     import { onMounted } from 'vue';
 
     onMounted(async () => {
-        // @ts-expect-error missing type definitions
-        const { Analytics } = await import('@vercel/analytics/web');
+        const { Analytics } = await import('@vercel/analytics/vue');
         Analytics();
     });
 </script>
