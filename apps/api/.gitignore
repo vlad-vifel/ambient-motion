@@ -1,4 +1,11 @@
 node_modules/
 dist/
 .env
+.env.local
+.env.*.local
 src/generated/
+*.log
+.DS_Store
+Thumbs.db
+ambient_motion.db
+.vercel
