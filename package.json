@@ -13,7 +13,7 @@
     "build:api": "npm run build --workspace=apps/api",
     "lint": "eslint . --fix --ext .ts,.tsx,.vue,.js,.jsx",
     "format": "prettier --write \"apps/**/*.{vue,ts,tsx,js,jsx,css}\"",
-    "prepare": "husky"
+    "prepare": "husky || true"
   },
   "lint-staged": {
     "apps/**/*.{vue,ts,tsx,js,jsx}": [
