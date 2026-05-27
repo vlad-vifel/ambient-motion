@@ -30,9 +30,11 @@ async function getDurationFromBuffer(
 ): Promise<number> {
     try {
         console.log(`[Audio] Attempting to parse duration with music-metadata`);
-        const meta = await parseBuffer(buffer, { mimeType });
+        const meta = await parseBuffer(buffer, { mimeType }, { duration: true });
         const durationSec = meta.format.duration ?? 0;
-        console.log(`[Audio] Parsed duration: ${durationSec}s`);
+        console.log(
+            `[Audio] Parsed duration: ${durationSec}s, format: ${meta.format.container}, codec: ${meta.format.codec}`,
+        );
         if (durationSec > 0) {
             return Math.round(durationSec * 1000);
         }
