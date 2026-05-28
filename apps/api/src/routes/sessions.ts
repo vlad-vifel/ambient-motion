@@ -2,7 +2,7 @@ import { Response, Router } from 'express';
 import { prisma } from '../lib/prisma';
 import { generateSignedUrl } from '../lib/s3';
 import { AuthRequest, requireAuth } from '../middleware/auth';
-import { triggerVideoGeneration } from '../generator/dispatch';
+import { triggerBatchVideoGeneration } from '../generator/dispatch';
 
 const router = Router();
 router.use(requireAuth);
@@ -264,21 +264,7 @@ router.post('/:id/generate', async (req: AuthRequest, res: Response) => {
             }),
         );
 
-        await Promise.all(
-            jobs.map((job) =>
-                triggerVideoGeneration({
-                    videoId: job.id,
-                    phrase: job.phrase,
-                    presetComponent: session.preset!.component,
-                    sourceImageUrl: job.sourceImageUrl,
-                    sourceAudioUrl: job.sourceAudioUrl,
-                    durationMs: job.durationMs,
-                    fadeInMs: job.fadeInMs,
-                    fadeOutMs: job.fadeOutMs,
-                    userId: job.userId,
-                }),
-            ),
-        );
+        await triggerBatchVideoGeneration(jobs.map((job) => job.id));
 
         res.status(201).json({ jobs });
     } catch {

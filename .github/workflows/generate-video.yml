@@ -1,13 +1,13 @@
-name: Generate Video
+name: Generate Videos
 
 on:
   repository_dispatch:
-    types: [generate-video]
+    types: [generate-video, generate-video-batch]
 
 jobs:
   generate:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v4
@@ -31,7 +31,8 @@ jobs:
         run: npx prisma generate
         working-directory: apps/api
 
-      - name: Generate video
+      - name: Generate single video
+        if: github.event.action == 'generate-video'
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           SUFY_ACCESS_KEY: ${{ secrets.SUFY_ACCESS_KEY }}
@@ -51,4 +52,19 @@ jobs:
           FADE_OUT_MS: ${{ github.event.client_payload.fadeOutMs }}
           USER_ID: ${{ github.event.client_payload.userId }}
         run: npx ts-node -P tsconfig.json src/generator/run-job.ts
+        working-directory: apps/api
+
+      - name: Generate video batch
+        if: github.event.action == 'generate-video-batch'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUFY_ACCESS_KEY: ${{ secrets.SUFY_ACCESS_KEY }}
+          SUFY_SECRET_KEY: ${{ secrets.SUFY_SECRET_KEY }}
+          SUFY_BUCKET_NAME: ${{ secrets.SUFY_BUCKET_NAME }}
+          SUFY_ORIGIN_DOMAIN: ${{ secrets.SUFY_ORIGIN_DOMAIN }}
+          SUFY_CDN_DOMAIN: ${{ secrets.SUFY_CDN_DOMAIN }}
+          SUFY_URL_SIGNING_KEY: ${{ secrets.SUFY_URL_SIGNING_KEY }}
+          REMOTION_GL: swiftshader
+          VIDEO_IDS: ${{ toJson(github.event.client_payload.videoIds) }}
+        run: npx ts-node -P tsconfig.json src/generator/run-batch.ts
         working-directory: apps/api
