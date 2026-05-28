@@ -30,7 +30,6 @@
     "prisma": "^6.19.3"
   },
   "devDependencies": {
-    "@remotion/cli": "^4.0.464",
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
