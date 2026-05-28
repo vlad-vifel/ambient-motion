@@ -41,18 +41,32 @@ async function runJob(): Promise<void> {
         };
 
         await renderVideo({ ...renderParams, outputPath: videoPath });
+        console.log('[Job] Video render completed, applying grain filter...');
+
         await applyGrainFilter(videoPath, videoPath);
+        console.log('[Job] Grain filter applied');
+
         await renderThumbnail({ ...renderParams, outputPath: thumbPath });
+        console.log('[Job] Thumbnail render completed');
 
         const videoBuffer = await fs.readFile(videoPath);
         const thumbBuffer = await fs.readFile(thumbPath);
+        console.log(
+            `[Job] Read files: video ${videoBuffer.length} bytes, thumb ${thumbBuffer.length} bytes`,
+        );
 
         const videoKey = `videos/${videoId}/out.mp4`;
         const thumbKey = `videos/${videoId}/thumb.jpg`;
 
+        console.log('[Job] Uploading video to storage...');
         await uploadVideoFile(videoKey, videoBuffer, userId);
-        await uploadThumbnail(thumbKey, thumbBuffer, userId);
+        console.log('[Job] Video uploaded');
 
+        console.log('[Job] Uploading thumbnail to storage...');
+        await uploadThumbnail(thumbKey, thumbBuffer, userId);
+        console.log('[Job] Thumbnail uploaded');
+
+        console.log('[Job] Updating database...');
         await prisma.video.update({
             where: { id: videoId },
             data: {
@@ -62,6 +76,7 @@ async function runJob(): Promise<void> {
                 completedAt: new Date(),
             },
         });
+        console.log('[Job] Database updated');
 
         console.log(`Job ${videoId} completed`);
     } catch (err: unknown) {
