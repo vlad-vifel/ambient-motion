@@ -59,6 +59,7 @@ export async function renderVideo(params: RenderVideoParams): Promise<void> {
         serveUrl,
         id: presetId,
         inputProps,
+        browserExecutable: process.env.CHROME_EXECUTABLE || undefined,
     });
     console.log(
         `[Render] Composition selected - ${composition.width}x${composition.height} @ ${composition.fps}fps`,
@@ -75,11 +76,12 @@ export async function renderVideo(params: RenderVideoParams): Promise<void> {
             inputProps,
             concurrency: 1,
             crf: 23,
+            browserExecutable: process.env.CHROME_EXECUTABLE || undefined,
             chromiumOptions: {
-                gl: 'angle',
+                gl: (process.env.REMOTION_GL as any) || 'angle',
             },
-            timeoutInMilliseconds: 600000, // 10 minute timeout
-            verbose: true,
+            timeoutInMilliseconds: 600000,
+            verbose: false,
         });
         const renderDuration = Date.now() - renderStartTime;
         console.log(`[Render] renderMedia completed in ${renderDuration}ms, output: ${outputPath}`);

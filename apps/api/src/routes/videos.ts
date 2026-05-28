@@ -3,7 +3,7 @@ import { prisma } from '../lib/prisma';
 import { deleteFile, generateSignedUrl } from '../lib/s3';
 import { AuthRequest, requireAuth } from '../middleware/auth';
 import { VIDEO_PRESETS } from '../remotion/presets';
-import { notifyWorker } from '../generator/worker';
+import { triggerVideoGeneration } from '../generator/dispatch';
 
 const router = Router();
 router.use(requireAuth);
@@ -119,6 +119,7 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
 
         const video = await prisma.video.findFirst({
             where: { id: String(req.params.id), userId: req.userId! },
+            include: { preset: true, asset: true, audio: true },
         });
 
         if (!video) {
@@ -134,6 +135,13 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
         if (video.videoUrl) await deleteFile(video.videoUrl, req.userId!);
         if (video.thumbnailUrl) await deleteFile(video.thumbnailUrl, req.userId!);
 
+        const sourceImageUrl = generateSignedUrl(video.asset!.storageKey, req.userId!, 24 * 3600);
+        const sourceAudioUrl = generateSignedUrl(
+            `audio/${video.audio!.filename}`,
+            req.userId!,
+            24 * 3600,
+        );
+
         const updated = await prisma.video.update({
             where: { id: String(req.params.id) },
             data: {
@@ -144,10 +152,23 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
                 startedAt: null,
                 completedAt: null,
                 errorMessage: null,
+                sourceImageUrl,
+                sourceAudioUrl,
             },
         });
 
-        notifyWorker();
+        await triggerVideoGeneration({
+            videoId: updated.id,
+            phrase: updated.phrase,
+            presetComponent: video.preset.component,
+            sourceImageUrl,
+            sourceAudioUrl,
+            durationMs: updated.durationMs,
+            fadeInMs: updated.fadeInMs,
+            fadeOutMs: updated.fadeOutMs,
+            userId: updated.userId,
+        });
+
         res.json(updated);
     } catch {
         res.status(500).json({ error: 'Internal server error' });

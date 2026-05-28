@@ -25,6 +25,7 @@ router.post('/phrases', async (req: AuthRequest, res: Response) => {
 
 Rules:
 - 5-9 words long
+- maximum 40 characters per phrase (spaces are also taken into account)
 - strictly in English, all lowercase
 - personal, melancholic, emotional — about feelings, loss, love, longing
 - feel like confessions, inner thoughts, or personal situations

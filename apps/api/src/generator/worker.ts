@@ -103,7 +103,7 @@ async function processJob(job: {
 
         console.log(`[Worker] Starting video render...`);
         try {
-            const renderTimeoutMs = 15 * 60 * 1000; // 15 minute timeout
+            const renderTimeoutMs = 15 * 60 * 1000;
             const renderPromise = renderVideo({ ...renderParams, outputPath: videoPath });
             const timeoutPromise = new Promise<never>((_resolve, reject) => {
                 setTimeout(() => {

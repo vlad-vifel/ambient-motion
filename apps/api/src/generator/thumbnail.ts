@@ -27,6 +27,7 @@ export async function renderThumbnail(params: RenderThumbnailParams): Promise<vo
         serveUrl,
         id: presetId,
         inputProps,
+        browserExecutable: process.env.CHROME_EXECUTABLE || undefined,
     });
     console.log(`[Thumbnail] Composition selected - ${composition.width}x${composition.height}`);
 
@@ -42,8 +43,9 @@ export async function renderThumbnail(params: RenderThumbnailParams): Promise<vo
         frame: middleFrame,
         imageFormat: 'jpeg',
         jpegQuality: 70,
+        browserExecutable: process.env.CHROME_EXECUTABLE || undefined,
         chromiumOptions: {
-            gl: 'angle',
+            gl: (process.env.REMOTION_GL as any) || 'angle',
         },
     });
     console.log(`[Thumbnail] renderStill completed, output: ${outputPath}`);

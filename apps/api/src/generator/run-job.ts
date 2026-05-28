@@ -1,0 +1,86 @@
+import 'dotenv/config';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { prisma } from '../lib/prisma';
+import { uploadThumbnail, uploadVideoFile } from '../lib/s3';
+import { renderThumbnail } from './thumbnail';
+import { renderVideo } from './render';
+import { applyGrainFilter } from './ffmpeg-grain';
+
+async function runJob(): Promise<void> {
+    const videoId = process.env.VIDEO_ID!;
+    const phrase = process.env.PHRASE!;
+    const presetComponent = process.env.PRESET_COMPONENT!;
+    const sourceImageUrl = process.env.SOURCE_IMAGE_URL!;
+    const sourceAudioUrl = process.env.SOURCE_AUDIO_URL!;
+    const durationMs = Number(process.env.DURATION_MS);
+    const fadeInMs = Number(process.env.FADE_IN_MS ?? 0);
+    const fadeOutMs = Number(process.env.FADE_OUT_MS ?? 0);
+    const userId = process.env.USER_ID!;
+
+    const tmpDir = path.join(os.tmpdir(), `am-${videoId}`);
+    await fs.mkdir(tmpDir, { recursive: true });
+    const videoPath = path.join(tmpDir, 'out.mp4');
+    const thumbPath = path.join(tmpDir, 'thumb.jpg');
+
+    try {
+        await prisma.video.update({
+            where: { id: videoId },
+            data: { status: 'GENERATING', startedAt: new Date() },
+        });
+
+        const renderParams = {
+            presetId: presetComponent,
+            imageUrl: sourceImageUrl,
+            audioUrl: sourceAudioUrl,
+            phrase,
+            durationMs,
+            fadeInMs,
+            fadeOutMs,
+        };
+
+        await renderVideo({ ...renderParams, outputPath: videoPath });
+        await applyGrainFilter(videoPath, videoPath);
+        await renderThumbnail({ ...renderParams, outputPath: thumbPath });
+
+        const videoBuffer = await fs.readFile(videoPath);
+        const thumbBuffer = await fs.readFile(thumbPath);
+
+        const videoKey = `videos/${videoId}/out.mp4`;
+        const thumbKey = `videos/${videoId}/thumb.jpg`;
+
+        await uploadVideoFile(videoKey, videoBuffer, userId);
+        await uploadThumbnail(thumbKey, thumbBuffer, userId);
+
+        await prisma.video.update({
+            where: { id: videoId },
+            data: {
+                status: 'COMPLETED',
+                videoUrl: videoKey,
+                thumbnailUrl: thumbKey,
+                completedAt: new Date(),
+            },
+        });
+
+        console.log(`Job ${videoId} completed`);
+    } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`Job ${videoId} failed:`, message);
+
+        await prisma.video.update({
+            where: { id: videoId },
+            data: { status: 'FAILED', errorMessage: message.slice(0, 1000) },
+        });
+
+        process.exit(1);
+    } finally {
+        await fs.rm(tmpDir, { recursive: true, force: true });
+        await prisma.$disconnect();
+    }
+}
+
+runJob().catch((err) => {
+    console.error(err);
+    process.exit(1);
+});
