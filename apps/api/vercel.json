@@ -1,0 +1,8 @@
+{
+  "version": 2,
+  "functions": {
+    "index.js": {
+      "excludeFiles": "node_modules/{ffmpeg-static,@rspack,@esbuild,typescript/lib,webpack,webpack-cli,cross-env,nodemon,ts-node,@types/**,*.cache}/**"
+    }
+  }
+}
