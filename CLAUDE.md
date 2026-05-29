@@ -543,6 +543,28 @@ Avoid:
 - Step-by-step process comments (except for non-obvious algorithms)
 - Comments about what will be implemented later
 
+### Git Commit Messages
+
+Format: `<type>: <description>` (one line, lowercase except for proper nouns/codes)
+
+Types:
+- `feat:` new feature
+- `fix:` bug fix
+- `refactor:` code restructuring (no functional change)
+- `docs:` documentation updates
+- `chore:` build, deps, config changes
+- `perf:` performance improvements
+
+Examples:
+- `feat: batch video generation with single github actions run`
+- `fix: exclude node_modules from vercel deployment`
+- `refactor: simplify video dispatch logic`
+
+**Do NOT include:**
+- Author attribution (e.g., "Co-Authored-By: Claude...")
+- Multi-line messages (keep to one line)
+- Commit bodies unless absolutely necessary
+
 ---
 
 ## DEPLOYMENT
