@@ -1,5 +1,3 @@
-import { notifyWorker } from './worker';
-
 export interface VideoDispatchPayload {
     videoId: string;
     phrase: string;
@@ -19,16 +17,12 @@ export function isGitHubDispatchEnabled(): boolean {
 export async function triggerVideoGeneration(payload: VideoDispatchPayload): Promise<void> {
     if (isGitHubDispatchEnabled()) {
         await dispatchVideoGeneration(payload);
-    } else {
-        notifyWorker();
     }
 }
 
 export async function triggerBatchVideoGeneration(videoIds: string[]): Promise<void> {
     if (isGitHubDispatchEnabled()) {
         await dispatchBatchVideoGeneration(videoIds);
-    } else {
-        videoIds.forEach(() => notifyWorker());
     }
 }
 

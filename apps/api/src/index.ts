@@ -10,8 +10,6 @@ import videosRoutes from './routes/videos';
 import sessionsRoutes from './routes/sessions';
 import videoPresetsRouter from './routes/video-presets';
 import aiRouter from './routes/ai';
-import { startWorker } from './generator/worker';
-import { isGitHubDispatchEnabled } from './generator/dispatch';
 
 const app = express();
 const PORT = process.env.PORT ?? 3000;
@@ -48,9 +46,6 @@ app.use((_req, res) => {
 
 app.listen(PORT, () => {
     console.log(`ambient motion API running on http://localhost:${PORT}`);
-    if (!isGitHubDispatchEnabled()) {
-        startWorker().catch(console.error);
-    }
 });
 
 export default app;
