@@ -45,17 +45,26 @@ Number of phrases: ${n}
 Theme: ${theme.trim()}
 Seed: ${Math.random().toString(36).slice(2)}`;
 
-        const message = await pollinations.chat.completions.create({
-            model: 'openai',
-            messages: [{ role: 'user', content: prompt }],
-        });
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 20000);
+
+        let message;
+        try {
+            message = await pollinations.chat.completions.create(
+                { model: 'openai', messages: [{ role: 'user', content: prompt }] },
+                { signal: controller.signal },
+            );
+        } finally {
+            clearTimeout(timeout);
+        }
 
         const output = message.choices[0]?.message?.content ?? '';
+        console.log('[AI] raw output:', JSON.stringify(output));
 
         const phrases = output
             .split('\n')
             .map((line: string) => line.trim().replace(/^[-*•\d.]+\s*/, ''))
-            .filter((line: string) => line.length > 0);
+            .filter((line: string) => line.length > 0 && line.length <= 80);
 
         res.json({ phrases });
     } catch (err: unknown) {
