@@ -111,11 +111,16 @@
     };
 
     const sortedVideos = computed(() =>
-        [...videosStore.items].sort((a, b) => {
-            const od = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
-            if (od !== 0) return od;
-            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        }),
+        videosStore.items
+            .map((v, i) => ({ v, i }))
+            .sort((a, b) => {
+                const od = STATUS_ORDER[a.v.status] - STATUS_ORDER[b.v.status];
+                if (od !== 0) return od;
+                const td = new Date(b.v.createdAt).getTime() - new Date(a.v.createdAt).getTime();
+                if (td !== 0) return td;
+                return a.i - b.i;
+            })
+            .map(({ v }) => v),
     );
 
     const lightboxOpen = ref(false);
