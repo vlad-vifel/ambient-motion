@@ -12,8 +12,14 @@ async function runBatch(): Promise<void> {
     const videoIds: string[] = JSON.parse(process.env.VIDEO_IDS!);
     console.log(`[Batch] Starting batch of ${videoIds.length} videos`);
 
-    for (const videoId of videoIds) {
-        await runJob(videoId);
+    const videos = await prisma.video.findMany({
+        where: { id: { in: videoIds } },
+        orderBy: { createdAt: 'asc' },
+        select: { id: true },
+    });
+
+    for (const { id } of videos) {
+        await runJob(id);
     }
 
     console.log(`[Batch] All ${videoIds.length} videos processed`);

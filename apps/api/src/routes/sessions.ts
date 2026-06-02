@@ -235,34 +235,35 @@ router.post('/:id/generate', async (req: AuthRequest, res: Response) => {
 
         const limitedPhrases = phrases.slice(0, shuffledAssets.length);
 
-        const jobs = await Promise.all(
-            limitedPhrases.map(async (phrase: string, index: number) => {
-                const randomAsset = shuffledAssets[index].asset;
-                const sourceImageUrl = generateSignedUrl(
-                    randomAsset.storageKey,
-                    req.userId!,
-                    24 * 3600,
-                );
+        const jobs = [];
+        for (let index = 0; index < limitedPhrases.length; index++) {
+            const phrase = limitedPhrases[index];
+            const randomAsset = shuffledAssets[index].asset;
+            const sourceImageUrl = generateSignedUrl(
+                randomAsset.storageKey,
+                req.userId!,
+                24 * 3600,
+            );
 
-                return prisma.video.create({
-                    data: {
-                        title: phrase,
-                        phrase,
-                        status: 'QUEUED',
-                        sessionId: session.id,
-                        presetId: session.presetId,
-                        assetId: randomAsset.id,
-                        sourceImageUrl,
-                        audioId: session.audioId,
-                        sourceAudioUrl,
-                        durationMs: session.durationMs,
-                        fadeInMs: session.fadeInMs,
-                        fadeOutMs: session.fadeOutMs,
-                        userId: req.userId!,
-                    },
-                });
-            }),
-        );
+            const job = await prisma.video.create({
+                data: {
+                    title: phrase,
+                    phrase,
+                    status: 'QUEUED',
+                    sessionId: session.id,
+                    presetId: session.presetId,
+                    assetId: randomAsset.id,
+                    sourceImageUrl,
+                    audioId: session.audioId,
+                    sourceAudioUrl,
+                    durationMs: session.durationMs,
+                    fadeInMs: session.fadeInMs,
+                    fadeOutMs: session.fadeOutMs,
+                    userId: req.userId!,
+                },
+            });
+            jobs.push(job);
+        }
 
         await triggerBatchVideoGeneration(jobs.map((job) => job.id));
 
