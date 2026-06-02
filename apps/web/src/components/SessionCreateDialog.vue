@@ -11,7 +11,7 @@ h
                 <DialogDescription class="sr-only">Dialog</DialogDescription>
             </DialogHeader>
 
-            <div class="px-6 flex flex-col gap-5 overflow-y-auto min-h-0">
+            <div ref="scrollContainer" class="px-6 flex flex-col gap-5 overflow-y-auto min-h-0">
                 <div class="flex flex-col gap-1.5">
                     <label class="flex items-center text-xs text-muted-foreground"
                     >Audio track</label
@@ -312,7 +312,7 @@ h
         Loader2,
     } from 'lucide-vue-next';
     import type { Component } from 'vue';
-    import { computed, reactive, ref, watch } from 'vue';
+    import { computed, nextTick, reactive, ref, watch } from 'vue';
     import { useRouter } from 'vue-router';
     import MiniAudioPlayer from '@/components/MiniAudioPlayer.vue';
     import { Badge } from '@/components/ui/badge';
@@ -490,8 +490,14 @@ h
         }
     }
 
-    function addPhrase() {
+    const scrollContainer = ref<HTMLElement | null>(null);
+
+    async function addPhrase() {
         phrases.value.push('');
+        await nextTick();
+        if (scrollContainer.value) {
+            scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight;
+        }
     }
 
     function removePhrase(i: number) {
