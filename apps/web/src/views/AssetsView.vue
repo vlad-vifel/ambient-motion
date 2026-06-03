@@ -58,7 +58,11 @@
         </div>
 
         <div
-            v-if="!isLoading && !assetsStore.items.length"
+            v-if="
+                !isLoading &&
+                    !assetsStore.items.length &&
+                    (!foldersStore.items.length || currentFolder !== null)
+            "
             class="rounded-xl border border-border/50 bg-card p-12 flex flex-col items-center justify-center gap-4 text-center min-h-64"
         >
             <div class="size-12 rounded-full bg-muted flex items-center justify-center">
