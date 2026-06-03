@@ -5,10 +5,12 @@ import { AuthRequest, requireAuth } from '../middleware/auth';
 const router = Router();
 router.use(requireAuth);
 
-const pollinations = new OpenAI({
-    apiKey: 'pollinations',
-    baseURL: 'https://text.pollinations.ai/openai',
+const groq = new OpenAI({
+    apiKey: process.env.GROQ_API_KEY,
+    baseURL: 'https://api.groq.com/openai/v1',
 });
+
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
 router.post('/phrases', async (req: AuthRequest, res: Response) => {
     try {
@@ -50,16 +52,19 @@ Seed: ${Math.random().toString(36).slice(2)}`;
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 25000);
             try {
-                message = await pollinations.chat.completions.create(
-                    { model: 'openai', messages: [{ role: 'user', content: prompt }] },
+                message = await groq.chat.completions.create(
+                    {
+                        model: GROQ_MODEL,
+                        messages: [{ role: 'user', content: prompt }],
+                        temperature: 1,
+                    },
                     { signal: controller.signal },
                 );
                 break;
             } catch (err: unknown) {
                 clearTimeout(timeout);
                 const msg = err instanceof Error ? err.message : String(err);
-                const is429 = msg.includes('429') || msg.includes('Queue full');
-                if (is429 && attempt < 3) {
+                if (msg.includes('429') && attempt < 3) {
                     console.log(`[AI] Rate limited, retry ${attempt}/3 in 4s...`);
                     await new Promise((r) => setTimeout(r, 4000));
                     continue;
