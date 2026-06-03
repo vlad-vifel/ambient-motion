@@ -27,26 +27,31 @@ router.post('/phrases', async (req: AuthRequest, res: Response) => {
 
 Rules:
 - 6-10 words long
-- maximum 40 characters per phrase (spaces are also taken into account)
+- maximum 45 characters per phrase (spaces included)
 - strictly in English, all lowercase
 - personal, melancholic, emotional — about feelings, loss, love, longing
 - feel like confessions, inner thoughts, or personal situations
-- MUST contain a verb — either an action, feeling, or imperative (a call to action)
-- if there is a subject (i / you / we), prefer present continuous (i'm still waiting) or past simple for regret/loss (we never said goodbye)
-- imperative phrases without a subject are welcome (hide my tears far away from me)
-- sound poetic and beautiful — simple everyday words, NO complex or rare vocabulary
-- NEVER write standalone noun phrases or pure scenery with no verb (e.g. "forgotten memories of summer")
+- MUST contain a verb — action, feeling, or imperative
+- add specific details that make the phrase feel real and vivid — a place, a time, a small gesture, a sensory detail (e.g. "in the heat of last summer", "your pretty smile", "these empty nights")
+- vary the grammar structures — do NOT overuse "i'm + verb"; mix in: past simple (we never said goodbye to each other), present simple (i forget you every morning of our lige), imperative (hide my tears far away from me), "how it feels / when /you were / you never / we let / i keep", 
+- NO more than 2-3 phrases with "i'm" out of the full set
+- sound poetic and beautiful — simple everyday words only, NO complex or rare vocabulary
+- NEVER write standalone noun phrases with no verb
 - one phrase per line, nothing else — no numbering, no punctuation at the end
 
 Good examples:
-i'm still looking for you everywhere
-we never got to say goodbye
-hide my tears far away from me
-i keep searching for you in empty rooms
+how it feels to love something that's already gone
+when the past feels closer than the present
+i forget you in the heat of summer
+i keep looking for you in empty rooms
+we never said goodbye to each other
 you were never really mine to keep
-i'm forgetting how your voice sounds
+hide my tears far away from me
+tell me you still remember my name
 we let it all fade too quietly
-tell me you remember me too
+i'm forgetting how your voice sounds now
+i still wait for you sometimes
+you left without saying anything at all
 forgotten memories of our summer
 summer breeze that brings no peace
 empty streets and quiet nights
