@@ -70,7 +70,7 @@ Seed: ${Math.random().toString(36).slice(2)}`;
             }
         }
 
-        const output = message.choices[0]?.message?.content ?? '';
+        const output = message!.choices[0]?.message?.content ?? '';
         console.log('[AI] raw output:', JSON.stringify(output));
 
         const phrases = output
