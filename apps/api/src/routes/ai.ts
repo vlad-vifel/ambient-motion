@@ -45,17 +45,29 @@ Number of phrases: ${n}
 Theme: ${theme.trim()}
 Seed: ${Math.random().toString(36).slice(2)}`;
 
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 20000);
-
         let message;
-        try {
-            message = await pollinations.chat.completions.create(
-                { model: 'openai', messages: [{ role: 'user', content: prompt }] },
-                { signal: controller.signal },
-            );
-        } finally {
-            clearTimeout(timeout);
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 25000);
+            try {
+                message = await pollinations.chat.completions.create(
+                    { model: 'openai', messages: [{ role: 'user', content: prompt }] },
+                    { signal: controller.signal },
+                );
+                break;
+            } catch (err: unknown) {
+                clearTimeout(timeout);
+                const msg = err instanceof Error ? err.message : String(err);
+                const is429 = msg.includes('429') || msg.includes('Queue full');
+                if (is429 && attempt < 3) {
+                    console.log(`[AI] Rate limited, retry ${attempt}/3 in 4s...`);
+                    await new Promise((r) => setTimeout(r, 4000));
+                    continue;
+                }
+                throw err;
+            } finally {
+                clearTimeout(timeout);
+            }
         }
 
         const output = message.choices[0]?.message?.content ?? '';
