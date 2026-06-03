@@ -31,17 +31,22 @@ Rules:
 - strictly in English, all lowercase
 - personal, melancholic, emotional — about feelings, loss, love, longing
 - feel like confessions, inner thoughts, or personal situations
-- can be about relationships, a person you miss, or talking to yourself
-- NOT just descriptive imagery — must have emotional weight or personal meaning
+- MUST contain a subject and an action or feeling (i / you / we + a verb) — someone doing, feeling, or wanting something
+- NEVER write standalone descriptive noun phrases or pure scenery (e.g. "forgotten memories of summer", "a breeze that brings no peace") — every phrase must SAY something, not just paint a picture
 - one phrase per line, nothing else — no numbering, no punctuation at the end
 
-Good examples:
-how it feels to love something that's already gone
-when the past feels closer than the present
-hide my tears far away from me
-i don't even know how to forget you
+Good examples (notice each one has a subject doing/feeling something):
+i still wait for you sometimes
 you were never really mine to keep
 i keep looking for you in empty rooms
+i don't even know how to forget you
+we let it fade too quietly
+i miss who i was with you
+
+Bad examples (avoid these — no action, just imagery):
+forgotten memories of our summer
+summer breeze that brings no peace
+empty streets and quiet nights
 
 Number of phrases: ${n}
 Theme: ${theme.trim()}
