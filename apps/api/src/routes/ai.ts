@@ -26,24 +26,27 @@ router.post('/phrases', async (req: AuthRequest, res: Response) => {
         const prompt = `Generate short emotional phrases on a given theme for cinematic ambient videos.
 
 Rules:
-- 5-9 words long
+- 6-10 words long
 - maximum 40 characters per phrase (spaces are also taken into account)
 - strictly in English, all lowercase
 - personal, melancholic, emotional — about feelings, loss, love, longing
 - feel like confessions, inner thoughts, or personal situations
-- MUST contain a subject and an action or feeling (i / you / we + a verb) — someone doing, feeling, or wanting something
-- NEVER write standalone descriptive noun phrases or pure scenery (e.g. "forgotten memories of summer", "a breeze that brings no peace") — every phrase must SAY something, not just paint a picture
+- MUST contain a verb — either an action, feeling, or imperative (a call to action)
+- if there is a subject (i / you / we), prefer present continuous (i'm still waiting) or past simple for regret/loss (we never said goodbye)
+- imperative phrases without a subject are welcome (hide my tears far away from me)
+- sound poetic and beautiful — simple everyday words, NO complex or rare vocabulary
+- NEVER write standalone noun phrases or pure scenery with no verb (e.g. "forgotten memories of summer")
 - one phrase per line, nothing else — no numbering, no punctuation at the end
 
-Good examples (notice each one has a subject doing/feeling something):
-i still wait for you sometimes
+Good examples:
+i'm still looking for you everywhere
+we never got to say goodbye
+hide my tears far away from me
+i keep searching for you in empty rooms
 you were never really mine to keep
-i keep looking for you in empty rooms
-i don't even know how to forget you
-we let it fade too quietly
-i miss who i was with you
-
-Bad examples (avoid these — no action, just imagery):
+i'm forgetting how your voice sounds
+we let it all fade too quietly
+tell me you remember me too
 forgotten memories of our summer
 summer breeze that brings no peace
 empty streets and quiet nights
