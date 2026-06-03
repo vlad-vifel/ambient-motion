@@ -3,7 +3,7 @@
         <Loader2 class="size-6 text-muted-foreground animate-spin" />
     </div>
 
-    <div v-else class="flex flex-col gap-6">
+    <div v-else class="flex flex-col gap-6 pb-6">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div class="flex items-center gap-3 min-w-0">
                 <div
@@ -206,7 +206,6 @@
 
     onUnmounted(() => {
         sessionsStore.stopPolling();
-        breadcrumbsComposable.clearBreadcrumbs();
     });
 
     function openVideo(video: Video) {

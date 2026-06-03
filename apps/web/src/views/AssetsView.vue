@@ -1,5 +1,5 @@
 <template>
-    <div class="flex flex-col gap-6">
+    <div class="flex flex-col gap-6 pb-6">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h2 class="text-xl font-semibold">{{ currentFolder?.name || 'Assets' }}</h2>
@@ -368,7 +368,7 @@
         Trash2,
         Upload,
     } from 'lucide-vue-next';
-    import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+    import { computed, onMounted, ref, watch } from 'vue';
     import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
     import AssetEditDialog from '@/components/AssetEditDialog.vue';
     import AssetLightbox from '@/components/AssetLightbox.vue';
@@ -440,10 +440,6 @@
             initialLoading.value = false;
         }
         breadcrumbsComposable.setBreadcrumbs([{ label: 'Assets' }]);
-    });
-
-    onUnmounted(() => {
-        breadcrumbsComposable.clearBreadcrumbs();
     });
 
     async function enterFolder(folder: FolderType) {

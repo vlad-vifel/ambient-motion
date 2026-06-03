@@ -54,7 +54,10 @@ export const useSessionsStore = defineStore('sessions', () => {
         if (current.value?.id === id) current.value = null;
     }
 
-    async function generate(id: string, phrases: string[]): Promise<Video[]> {
+    async function generate(
+        id: string,
+        phrases: { phrase: string; assetId?: string | null }[],
+    ): Promise<Video[]> {
         const { data } = await api.post<{ jobs: Video[] }>(`/api/sessions/${id}/generate`, {
             phrases,
         });

@@ -1,5 +1,5 @@
 <template>
-    <div class="flex flex-col gap-6">
+    <div class="flex flex-col gap-6 pb-6">
         <div class="flex items-center justify-between">
             <div>
                 <h2 class="text-xl font-semibold">Videos</h2>
@@ -140,7 +140,6 @@
 
     onUnmounted(() => {
         videosStore.stopPolling();
-        breadcrumbsComposable.clearBreadcrumbs();
     });
 
     function openVideo(video: Video) {

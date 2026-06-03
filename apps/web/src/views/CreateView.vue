@@ -1,5 +1,5 @@
 <template>
-    <div class="flex flex-col gap-6">
+    <div class="flex flex-col gap-6 pb-6">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h2 class="text-xl font-semibold">Create</h2>
@@ -9,7 +9,7 @@
             </div>
 
             <div class="flex items-center gap-2">
-                <Button size="sm" @click="showCreate = true">
+                <Button size="sm" @click="$router.push('/create/new')">
                     <Plus class="size-4" />
                     Create videos
                 </Button>
@@ -90,8 +90,6 @@
         </div>
     </div>
 
-    <SessionCreateDialog v-model:open="showCreate" />
-
     <AlertDialog v-model:open="deleteOpen">
         <AlertDialogContent>
             <AlertDialogHeader>
@@ -115,7 +113,7 @@
 
 <script setup lang="ts">
     import { Clapperboard, MoreVertical, Music, Plus, Trash2 } from 'lucide-vue-next';
-    import { onMounted, onUnmounted, ref } from 'vue';
+    import { onMounted, ref } from 'vue';
     import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
     import {
         AlertDialog,
@@ -135,34 +133,17 @@
     } from '@/components/ui/dropdown-menu';
     import { Button } from '@/components/ui/button';
     import { useSessionsStore } from '@/stores/sessions';
-    import { useAudioStore } from '@/stores/audio';
-    import { useAssetsStore } from '@/stores/assets';
-    import { useFoldersStore } from '@/stores/folders';
-    import SessionCreateDialog from '@/components/SessionCreateDialog.vue';
     import type { GenerationSession } from '@/types/session';
 
     const sessionsStore = useSessionsStore();
     const breadcrumbsComposable = useBreadcrumbs();
-    const audioStore = useAudioStore();
-    const assetsStore = useAssetsStore();
-    const foldersStore = useFoldersStore();
 
-    const showCreate = ref(false);
     const deleteOpen = ref(false);
     const deleteSessionId = ref('');
 
     onMounted(async () => {
-        await Promise.all([
-            sessionsStore.fetchAll(),
-            audioStore.fetchAll(),
-            assetsStore.fetchAll(),
-            foldersStore.fetchAll(),
-        ]);
+        await sessionsStore.fetchAll();
         breadcrumbsComposable.setBreadcrumbs([{ label: 'Create' }]);
-    });
-
-    onUnmounted(() => {
-        breadcrumbsComposable.clearBreadcrumbs();
     });
 
     function sessionLabel(session: GenerationSession): string {

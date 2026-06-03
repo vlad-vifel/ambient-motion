@@ -1,5 +1,5 @@
 <template>
-    <div class="flex flex-col gap-6">
+    <div class="flex flex-col gap-6 pb-6">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h2 class="text-xl font-semibold">Audio</h2>
@@ -263,7 +263,7 @@
         Trash2,
         Upload,
     } from 'lucide-vue-next';
-    import { onMounted, onUnmounted, ref } from 'vue';
+    import { onMounted, ref } from 'vue';
     import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
     import AudioFormDialog from '@/components/AudioFormDialog.vue';
     import {
@@ -302,10 +302,6 @@
         await audioStore.fetchAll();
         player.setPlaylist(audioStore.items);
         breadcrumbsComposable.setBreadcrumbs([{ label: 'Audio' }]);
-    });
-
-    onUnmounted(() => {
-        breadcrumbsComposable.clearBreadcrumbs();
     });
 
     function onPlay(track: Audio) {

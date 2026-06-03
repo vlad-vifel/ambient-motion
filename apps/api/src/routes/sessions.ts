@@ -197,12 +197,19 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
 
 router.post('/:id/generate', async (req: AuthRequest, res: Response) => {
     try {
-        const { phrases } = req.body as { phrases: string[] };
+        const rawPhrases = req.body.phrases as (
+            | string
+            | { phrase: string; assetId?: string | null }
+        )[];
 
-        if (!phrases?.length) {
+        if (!rawPhrases?.length) {
             res.status(400).json({ error: 'phrases array is required and must not be empty' });
             return;
         }
+
+        const phraseInputs = rawPhrases.map((p) =>
+            typeof p === 'string' ? { phrase: p, assetId: null } : p,
+        );
 
         const session = await prisma.generationSession.findFirst({
             where: { id: String(req.params.id), userId: req.userId! },
@@ -233,14 +240,33 @@ router.post('/:id/generate', async (req: AuthRequest, res: Response) => {
 
         const shuffledAssets = [...session.assets].sort(() => Math.random() - 0.5);
 
-        const limitedPhrases = phrases.slice(0, shuffledAssets.length);
+        const specificIds = [
+            ...new Set(phraseInputs.filter((p) => p.assetId).map((p) => p.assetId!)),
+        ];
+        const specificAssetsData =
+            specificIds.length > 0
+                ? await prisma.asset.findMany({
+                      where: { id: { in: specificIds }, userId: req.userId! },
+                  })
+                : [];
+        const assetMap = new Map(specificAssetsData.map((a) => [a.id, a]));
 
         const jobs = [];
-        for (let index = 0; index < limitedPhrases.length; index++) {
-            const phrase = limitedPhrases[index];
-            const randomAsset = shuffledAssets[index].asset;
+        let shuffleIdx = 0;
+
+        for (const { phrase, assetId } of phraseInputs) {
+            let assetRecord;
+            if (assetId) {
+                assetRecord = assetMap.get(assetId);
+                if (!assetRecord) continue;
+            } else {
+                if (shuffleIdx >= shuffledAssets.length) continue;
+                assetRecord = shuffledAssets[shuffleIdx].asset;
+                shuffleIdx++;
+            }
+
             const sourceImageUrl = generateSignedUrl(
-                randomAsset.storageKey,
+                assetRecord.storageKey,
                 req.userId!,
                 24 * 3600,
             );
@@ -252,7 +278,7 @@ router.post('/:id/generate', async (req: AuthRequest, res: Response) => {
                     status: 'QUEUED',
                     sessionId: session.id,
                     presetId: session.presetId,
-                    assetId: randomAsset.id,
+                    assetId: assetRecord.id,
                     sourceImageUrl,
                     audioId: session.audioId,
                     sourceAudioUrl,

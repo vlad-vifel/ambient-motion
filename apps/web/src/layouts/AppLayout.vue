@@ -1,5 +1,5 @@
 <template>
-    <SidebarProvider style="--sidebar-width: 188px">
+    <SidebarProvider style="--sidebar-width: 188px" class="h-svh! min-h-0! overflow-hidden">
         <AppSidebar />
         <SidebarInset class="flex flex-col min-h-0 overflow-hidden">
             <header class="flex h-12 shrink-0 items-center gap-2 px-4 border-b border-border/50">
@@ -31,8 +31,10 @@
                 </h1>
             </header>
 
-            <div class="flex flex-1 flex-col gap-4 p-4 overflow-auto">
-                <RouterView />
+            <div class="flex-1 min-h-0 overflow-y-auto">
+                <div class="px-6 pt-6">
+                    <RouterView />
+                </div>
             </div>
 
             <AudioPlayer v-if="route.name === 'audio'" />

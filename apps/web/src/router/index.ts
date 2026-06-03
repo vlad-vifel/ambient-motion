@@ -34,6 +34,11 @@ const router = createRouter({
                     component: () => import('@/views/CreateView.vue'),
                 },
                 {
+                    path: 'create/new',
+                    name: 'create-new',
+                    component: () => import('@/views/CreateNewView.vue'),
+                },
+                {
                     path: 'create/:id',
                     name: 'session-detail',
                     component: () => import('@/views/SessionDetailView.vue'),
