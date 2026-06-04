@@ -6,11 +6,35 @@
             :show-close-button="false"
         >
             <DialogHeader class="px-6 pt-6 pb-4">
-                <DialogTitle>Edit phrase</DialogTitle>
+                <DialogTitle>Edit video</DialogTitle>
                 <DialogDescription class="sr-only">Dialog</DialogDescription>
             </DialogHeader>
 
             <div class="px-6 pb-6 flex flex-col gap-4">
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-xs text-muted-foreground">Asset</label>
+                    <div
+                        class="group relative size-40 rounded-lg overflow-hidden bg-muted cursor-pointer"
+                        @click="pickerOpen = true"
+                    >
+                        <img
+                            v-if="selectedAsset"
+                            :src="selectedAsset.url"
+                            class="size-full object-cover"
+                        />
+                        <div v-else class="size-full flex items-center justify-center">
+                            <ImageIcon class="size-5 text-muted-foreground" />
+                        </div>
+                        <button
+                            class="absolute top-1 right-1 p-1 rounded bg-black/50 hover:bg-black/70 text-white transition-opacity opacity-0 group-hover:opacity-100"
+                            title="Change asset"
+                            @click.stop="pickerOpen = true"
+                        >
+                            <Pencil class="size-3" />
+                        </button>
+                    </div>
+                </div>
+
                 <div class="flex flex-col gap-1.5">
                     <label class="text-xs text-muted-foreground">Phrase</label>
                     <input
@@ -31,11 +55,18 @@
             </div>
         </DialogContent>
     </Dialog>
+
+    <AssetPickerDialog
+        v-model:open="pickerOpen"
+        :initial-asset="selectedAsset"
+        @select="selectedAsset = $event"
+    />
 </template>
 
 <script setup lang="ts">
-    import { Loader2 } from 'lucide-vue-next';
+    import { ImageIcon, Loader2, Pencil } from 'lucide-vue-next';
     import { computed, ref, watch } from 'vue';
+    import AssetPickerDialog from '@/components/AssetPickerDialog.vue';
     import { Button } from '@/components/ui/button';
     import {
         Dialog,
@@ -44,6 +75,7 @@
         DialogTitle,
         DialogDescription,
     } from '@/components/ui/dialog';
+    import type { Asset } from '@/stores/assets';
     import { useVideosStore } from '@/stores/videos';
     import type { Video } from '@/types/video';
 
@@ -59,20 +91,25 @@
 
     const videosStore = useVideosStore();
     const phrase = ref('');
+    const selectedAsset = ref<Asset | null>(null);
+    const pickerOpen = ref(false);
     const submitting = ref(false);
 
-    const canSubmit = computed(
-        () =>
-            phrase.value.trim().length > 0 &&
-            phrase.value.trim() !== props.video?.phrase &&
-            !submitting.value,
-    );
+    const canSubmit = computed(() => {
+        if (!phrase.value.trim() || submitting.value) return false;
+        const phraseChanged = phrase.value.trim() !== props.video?.phrase;
+        const assetChanged = selectedAsset.value?.id !== props.video?.assetId;
+        return phraseChanged || assetChanged;
+    });
 
     watch(
         () => props.open,
         (v) => {
             if (v && props.video) {
                 phrase.value = props.video.phrase;
+                selectedAsset.value = props.video.asset
+                    ? (props.video.asset as unknown as Asset)
+                    : null;
             }
         },
         { immediate: true },
@@ -86,7 +123,11 @@
         if (!canSubmit.value || !props.video) return;
         submitting.value = true;
         try {
-            await videosStore.requeue(props.video.id, phrase.value.trim());
+            const updates: { phrase?: string; assetId?: string } = {};
+            if (phrase.value.trim() !== props.video.phrase) updates.phrase = phrase.value.trim();
+            if (selectedAsset.value?.id !== props.video.assetId)
+                updates.assetId = selectedAsset.value?.id;
+            await videosStore.requeue(props.video.id, updates);
             emit('requeued');
             emit('update:open', false);
         } finally {

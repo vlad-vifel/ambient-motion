@@ -1,35 +1,46 @@
 <template>
-    <Dialog :open="open" @update:open="(v) => !v && emit('update:open', false)">
-        <DialogContent
-            class="max-w-xl p-0 gap-0 overflow-hidden flex flex-col"
-            :disable-outside-close="false"
-        >
-            <DialogHeader class="px-6 pt-6 pb-4">
-                <div class="flex items-center gap-2">
-                    <DialogTitle>{{ filename }}</DialogTitle>
-                    <Badge v-if="isUsed" variant="secondary" class="text-xs shrink-0"> used </Badge>
-                </div>
-            </DialogHeader>
-            <div class="flex-1 flex items-center justify-center overflow-hidden p-4 pt-1">
-                <img
-                    v-if="src"
-                    :src="src"
-                    class="max-w-full max-h-full object-contain rounded-md"
-                />
+    <BaseLightbox
+        :open="open"
+        :items="items"
+        :initial-index="initialIndex"
+        @update:open="emit('update:open', $event)"
+    >
+        <template #title="{ item }">
+            <div class="flex items-center gap-2 h-5">
+                <DialogTitle>{{ (item as LightboxAsset).filename }}</DialogTitle>
+                <Badge
+                    v-if="(item as LightboxAsset).isUsed"
+                    variant="secondary"
+                    class="text-[10px] shrink-0"
+                >
+                    used
+                </Badge>
             </div>
-        </DialogContent>
-    </Dialog>
+        </template>
+        <template #media="{ item }">
+            <img
+                :src="(item as LightboxAsset).src"
+                class="max-w-full max-h-full object-contain rounded-md"
+            />
+        </template>
+    </BaseLightbox>
 </template>
 
 <script setup lang="ts">
     import { Badge } from '@/components/ui/badge';
-    import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+    import { DialogTitle } from '@/components/ui/dialog';
+    import BaseLightbox from './BaseLightbox.vue';
+
+    export interface LightboxAsset {
+        src: string;
+        filename?: string;
+        isUsed?: boolean;
+    }
 
     defineProps<{
         open: boolean;
-        src: string | null;
-        filename?: string;
-        isUsed?: boolean;
+        items: LightboxAsset[];
+        initialIndex?: number;
     }>();
 
     const emit = defineEmits<{

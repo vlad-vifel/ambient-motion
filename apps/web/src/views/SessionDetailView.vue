@@ -101,9 +101,8 @@
 
     <VideoLightbox
         :open="videoDialogOpen"
-        :src="activeVideo?.videoUrl ?? null"
-        :phrase="activeVideo?.phrase ?? ''"
-        :video-id="activeVideo?.id ?? ''"
+        :items="completedVideos.map((v) => ({ src: v.videoUrl!, phrase: v.phrase, videoId: v.id }))"
+        :initial-index="completedVideos.findIndex((v) => v.id === activeVideo?.id)"
         @update:open="videoDialogOpen = $event"
     />
 

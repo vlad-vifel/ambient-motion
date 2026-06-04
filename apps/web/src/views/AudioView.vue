@@ -6,10 +6,7 @@
                 <p class="text-sm text-muted-foreground mt-0.5">Your preprocessed audio tracks</p>
             </div>
             <div class="flex items-center gap-2">
-                <div
-                    v-if="!audioStore.loading && audioStore.items.length"
-                    class="flex gap-1 p-0.5 rounded-md border border-border bg-muted/20"
-                >
+                <div class="flex gap-1 p-0.5 rounded-md border border-border bg-muted/20">
                     <button
                         :class="[
                             'p-1.5 rounded transition-colors',

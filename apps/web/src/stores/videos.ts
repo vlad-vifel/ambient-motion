@@ -23,8 +23,8 @@ export const useVideosStore = defineStore('videos', () => {
         items.value = items.value.filter((v) => v.id !== id);
     }
 
-    async function requeue(id: string, phrase: string) {
-        const { data } = await api.patch<Video>(`/api/videos/${id}`, { phrase });
+    async function requeue(id: string, updates: { phrase?: string; assetId?: string }) {
+        const { data } = await api.patch<Video>(`/api/videos/${id}`, updates);
         const idx = items.value.findIndex((v) => v.id === id);
         if (idx !== -1) items.value[idx] = { ...items.value[idx], ...data };
     }

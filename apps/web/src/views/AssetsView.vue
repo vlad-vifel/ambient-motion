@@ -7,13 +7,7 @@
             </div>
 
             <div class="flex items-center gap-2">
-                <div
-                    v-if="
-                        !isLoading &&
-                            (assetsStore.items.length || (!currentFolder && foldersStore.items.length))
-                    "
-                    class="flex gap-1 p-0.5 rounded-md border border-border bg-muted/20"
-                >
+                <div class="flex gap-1 p-0.5 rounded-md border border-border bg-muted/20">
                     <button
                         :class="[
                             'p-1.5 rounded transition-colors',
@@ -325,9 +319,14 @@
 
         <AssetLightbox
             :open="lightboxOpen"
-            :src="lightboxSrc"
-            :filename="lightboxFilename"
-            :is-used="lightboxIsUsed"
+            :items="
+                assetsStore.items.map((a) => ({
+                    src: a.url,
+                    filename: a.filename,
+                    isUsed: a.isUsed,
+                }))
+            "
+            :initial-index="lightboxIndex"
             @update:open="lightboxOpen = $event"
         />
 
@@ -404,7 +403,7 @@
     const foldersStore = useFoldersStore();
     const breadcrumbsComposable = useBreadcrumbs();
 
-    const viewMode = ref<'list' | 'grid'>('list');
+    const viewMode = ref<'list' | 'grid'>('grid');
     const currentFolder = ref<FolderType | null>(null);
 
     const uploadDialogOpen = ref(false);
@@ -414,9 +413,7 @@
     const editAssetTarget = ref<Asset | null>(null);
 
     const lightboxOpen = ref(false);
-    const lightboxSrc = ref<string | null>(null);
-    const lightboxFilename = ref('');
-    const lightboxIsUsed = ref(false);
+    const lightboxIndex = ref(0);
 
     const deleteDialogOpen = ref(false);
     const deleteTarget = ref<{ type: 'asset' | 'folder'; id: string } | null>(null);
@@ -469,9 +466,7 @@
     }
 
     function openLightbox(asset: Asset) {
-        lightboxSrc.value = asset.url;
-        lightboxFilename.value = asset.filename;
-        lightboxIsUsed.value = asset.isUsed;
+        lightboxIndex.value = assetsStore.items.indexOf(asset);
         lightboxOpen.value = true;
     }
 

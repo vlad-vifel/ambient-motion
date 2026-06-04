@@ -11,6 +11,7 @@ const groq = new OpenAI({
 });
 
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
+const PHRASE_MAX_CHARS = 45;
 
 router.post('/phrases', async (req: AuthRequest, res: Response) => {
     try {
@@ -27,7 +28,7 @@ router.post('/phrases', async (req: AuthRequest, res: Response) => {
 
 Rules:
 - 6-10 words long
-- maximum 45 characters per phrase (spaces included)
+- maximum ${PHRASE_MAX_CHARS} characters per phrase (spaces included)
 - strictly in English, all lowercase
 - personal, melancholic, emotional — about feelings, loss, love, longing
 - feel like confessions, inner thoughts, or personal situations

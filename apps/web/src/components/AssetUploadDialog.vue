@@ -89,8 +89,8 @@
 
     <AssetLightbox
         :open="lightboxOpen"
-        :src="lightboxSrc"
-        :filename="lightboxFilename"
+        :items="lightboxItems"
+        :initial-index="lightboxIndex"
         @update:open="lightboxOpen = $event"
     />
 </template>
@@ -107,7 +107,7 @@
         DialogDescription,
     } from '@/components/ui/dialog';
     import { useAssetsStore } from '@/stores/assets';
-    import AssetLightbox from './AssetLightbox.vue';
+    import AssetLightbox, { type LightboxAsset } from './AssetLightbox.vue';
 
     const props = defineProps<{
         open: boolean;
@@ -132,8 +132,8 @@
     const fileInput = ref<HTMLInputElement | null>(null);
 
     const lightboxOpen = ref(false);
-    const lightboxSrc = ref<string | null>(null);
-    const lightboxFilename = ref('');
+    const lightboxItems = ref<LightboxAsset[]>([]);
+    const lightboxIndex = ref(0);
 
     watch(
         () => props.open,
@@ -179,8 +179,11 @@
     }
 
     function openLightbox(item: SelectedFile) {
-        lightboxSrc.value = item.preview;
-        lightboxFilename.value = item.file.name;
+        lightboxItems.value = selectedFiles.value.map((f) => ({
+            src: f.preview,
+            filename: f.file.name,
+        }));
+        lightboxIndex.value = selectedFiles.value.indexOf(item);
         lightboxOpen.value = true;
     }
 

@@ -4,6 +4,7 @@
             class="max-w-2xl p-0 gap-0 flex flex-col max-h-[85vh]"
             :disable-outside-close="true"
             :show-close-button="false"
+            :no-max-width="true"
         >
             <DialogHeader
                 class="px-6 pt-6 pb-4 shrink-0"

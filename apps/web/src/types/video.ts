@@ -11,6 +11,7 @@ export interface Video {
     sessionId: string | null;
     session?: { id: string; name: string | null } | null;
     assetId: string | null;
+    asset?: { id: string; url: string; filename: string } | null;
     audioId: string | null;
     createdAt: string;
     startedAt: string | null;

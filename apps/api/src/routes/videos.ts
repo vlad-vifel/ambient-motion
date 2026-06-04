@@ -46,6 +46,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
             orderBy: { createdAt: 'desc' },
             include: {
                 session: { select: { id: true, name: true } },
+                asset: { select: { id: true, url: true, filename: true } },
             },
         });
 
@@ -61,6 +62,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
             where: { id: String(req.params.id), userId: req.userId! },
             include: {
                 session: { select: { id: true, name: true } },
+                asset: { select: { id: true, url: true, filename: true } },
             },
         });
 
@@ -111,9 +113,10 @@ router.get('/:id/download', async (req: AuthRequest, res: Response) => {
 
 router.patch('/:id', async (req: AuthRequest, res: Response) => {
     try {
-        const { phrase } = req.body as { phrase?: string };
-        if (!phrase || !phrase.trim()) {
-            res.status(400).json({ error: 'phrase is required' });
+        const { phrase, assetId } = req.body as { phrase?: string; assetId?: string };
+
+        if (!phrase?.trim() && !assetId) {
+            res.status(400).json({ error: 'phrase or assetId is required' });
             return;
         }
 
@@ -127,15 +130,30 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
             return;
         }
 
-        if (video.phrase === phrase.trim()) {
-            res.status(400).json({ error: 'Phrase is the same' });
+        const newPhrase = phrase?.trim() ?? video.phrase;
+        const newAssetId = assetId ?? video.assetId;
+
+        if (newPhrase === video.phrase && newAssetId === video.assetId) {
+            res.status(400).json({ error: 'No changes detected' });
             return;
+        }
+
+        let assetRecord = video.asset!;
+        if (assetId && assetId !== video.assetId) {
+            const found = await prisma.asset.findFirst({
+                where: { id: assetId, userId: req.userId! },
+            });
+            if (!found) {
+                res.status(404).json({ error: 'Asset not found' });
+                return;
+            }
+            assetRecord = found;
         }
 
         if (video.videoUrl) await deleteFile(video.videoUrl, req.userId!);
         if (video.thumbnailUrl) await deleteFile(video.thumbnailUrl, req.userId!);
 
-        const sourceImageUrl = generateSignedUrl(video.asset!.storageKey, req.userId!, 24 * 3600);
+        const sourceImageUrl = generateSignedUrl(assetRecord.storageKey, req.userId!, 24 * 3600);
         const sourceAudioUrl = generateSignedUrl(
             `audio/${video.audio!.filename}`,
             req.userId!,
@@ -145,7 +163,8 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
         const updated = await prisma.video.update({
             where: { id: String(req.params.id) },
             data: {
-                phrase: phrase.trim(),
+                phrase: newPhrase,
+                assetId: newAssetId,
                 status: 'QUEUED',
                 videoUrl: null,
                 thumbnailUrl: null,

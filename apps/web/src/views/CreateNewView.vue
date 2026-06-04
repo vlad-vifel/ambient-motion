@@ -159,20 +159,29 @@
                     </SelectContent>
                 </Select>
 
-                <label class="flex items-center gap-2 mt-1 cursor-pointer">
+                <label
+                    class="flex items-center gap-2 mt-2 cursor-pointer group"
+                    @click="autoAssign = !autoAssign"
+                >
                     <div
                         :class="[
-                            'size-4 rounded-sm border transition-colors flex items-center justify-center shrink-0',
-                            manualAssign
+                            'size-4 rounded-sm border transition-colors flex items-center justify-center shrink-0 group-hover:border-primary',
+                            autoAssign
                                 ? 'bg-primary border-primary text-primary-foreground'
                                 : 'border-input bg-transparent',
                         ]"
-                        @click="manualAssign = !manualAssign"
                     >
-                        <Check v-if="manualAssign" class="size-3" />
+                        <Check v-if="autoAssign" class="size-3" />
                     </div>
-                    <span class="text-sm text-foreground select-none leading-none">
-                        Assign assets to each phrase manually
+                    <span
+                        :class="[
+                            'text-sm select-none leading-none transition-colors',
+                            autoAssign
+                                ? 'text-foreground'
+                                : 'text-muted-foreground group-hover:text-foreground',
+                        ]"
+                    >
+                        Assign assets to each phrase automatically
                     </span>
                 </label>
             </div>
@@ -260,19 +269,36 @@
                     {{ validationMessage }}
                 </p>
 
-                <div ref="phrasesListRef" class="flex flex-col gap-2">
-                    <div v-for="(_, i) in phrases" :key="i" class="flex items-center gap-2">
-                        <Input v-model="phrases[i]" placeholder="Type a phrase" class="flex-1" />
-                        <button
-                            v-if="phrases.length > 1"
-                            type="button"
-                            class="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
-                            @click="removePhrase(i)"
-                        >
-                            <X class="size-3.5" />
-                        </button>
+                <TooltipProvider>
+                    <div ref="phrasesListRef" class="flex flex-col gap-2">
+                        <div v-for="(_, i) in phrases" :key="i" class="flex items-center gap-2">
+                            <div class="relative flex-1">
+                                <Input v-model="phrases[i]" placeholder="Type a phrase" />
+                                <Tooltip v-if="phrases[i].length > PHRASE_MAX_CHARS">
+                                    <TooltipTrigger as-child>
+                                        <div
+                                            class="absolute right-2.5 top-1/2 -translate-y-1/2 cursor-default"
+                                        >
+                                            <AlertCircle class="size-4 text-yellow-500" />
+                                        </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        Exceeds recommended limit of
+                                        {{ PHRASE_MAX_CHARS }} characters
+                                    </TooltipContent>
+                                </Tooltip>
+                            </div>
+                            <button
+                                v-if="phrases.length > 1"
+                                type="button"
+                                class="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
+                                @click="removePhrase(i)"
+                            >
+                                <X class="size-3.5" />
+                            </button>
+                        </div>
                     </div>
-                </div>
+                </TooltipProvider>
                 <button
                     type="button"
                     class="self-start text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
@@ -290,9 +316,9 @@
                 <Button size="sm" :disabled="!canSubmit || submitting" @click="handlePrimary">
                     <Loader2 v-if="submitting" class="size-3.5 animate-spin mr-1.5" />
                     <span>{{
-                        manualAssign
-                            ? 'Next'
-                            : `Create videos${filledCount ? ` (${filledCount})` : ''}`
+                        autoAssign
+                            ? `Create videos${filledCount ? ` (${filledCount})` : ''}`
+                            : 'Next'
                     }}</span>
                 </Button>
             </div>
@@ -308,34 +334,50 @@
                 </div>
             </div>
 
-            <div class="flex flex-col gap-4 sm:gap-3">
-                <div
-                    v-for="(item, i) in phraseItems"
-                    :key="i"
-                    class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-3"
-                >
+            <TooltipProvider>
+                <div class="flex flex-col gap-4 sm:gap-3">
                     <div
-                        class="group relative size-24 rounded-lg overflow-hidden bg-muted shrink-0"
+                        v-for="(item, i) in phraseItems"
+                        :key="i"
+                        class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-3"
                     >
-                        <img
-                            v-if="item.asset"
-                            :src="item.asset.url"
-                            class="size-full object-cover"
-                        />
-                        <div v-else class="size-full flex items-center justify-center">
-                            <ImageIcon class="size-5 text-muted-foreground" />
-                        </div>
-                        <button
-                            class="absolute top-1 right-1 p-1 rounded bg-black/50 hover:bg-black/70 text-white transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
-                            title="Change asset"
-                            @click="openPicker(i)"
+                        <div
+                            class="group relative size-32 rounded-lg overflow-hidden bg-muted shrink-0"
                         >
-                            <Pencil class="size-3" />
-                        </button>
+                            <img
+                                v-if="item.asset"
+                                :src="item.asset.url"
+                                class="size-full object-cover"
+                            />
+                            <div v-else class="size-full flex items-center justify-center">
+                                <ImageIcon class="size-5 text-muted-foreground" />
+                            </div>
+                            <button
+                                class="absolute top-1 right-1 p-1 rounded bg-black/50 hover:bg-black/70 text-white transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+                                title="Change asset"
+                                @click="openPicker(i)"
+                            >
+                                <Pencil class="size-3" />
+                            </button>
+                        </div>
+                        <div class="relative flex-1">
+                            <Input v-model="item.phrase" placeholder="Type a phrase" />
+                            <Tooltip v-if="item.phrase.length > PHRASE_MAX_CHARS">
+                                <TooltipTrigger as-child>
+                                    <div
+                                        class="absolute right-2.5 top-1/2 -translate-y-1/2 cursor-default"
+                                    >
+                                        <AlertCircle class="size-4 text-yellow-500" />
+                                    </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    Exceeds recommended limit of {{ PHRASE_MAX_CHARS }} characters
+                                </TooltipContent>
+                            </Tooltip>
+                        </div>
                     </div>
-                    <Input v-model="item.phrase" placeholder="Type a phrase" class="flex-1" />
                 </div>
-            </div>
+            </TooltipProvider>
 
             <div
                 class="sticky bottom-0 bg-background border-t border-border/50 py-4 flex items-center justify-between"
@@ -359,6 +401,7 @@
 
 <script setup lang="ts">
     import {
+        AlertCircle,
         Check,
         Folder,
         Folders,
@@ -383,6 +426,12 @@
     import { Button } from '@/components/ui/button';
     import { Input } from '@/components/ui/input';
     import {
+        Tooltip,
+        TooltipContent,
+        TooltipProvider,
+        TooltipTrigger,
+    } from '@/components/ui/tooltip';
+    import {
         NumberField,
         NumberFieldContent,
         NumberFieldDecrement,
@@ -403,6 +452,8 @@
     import { usePresetsStore } from '@/stores/presets';
     import { useSessionsStore } from '@/stores/sessions';
     import api from '@/lib/api';
+
+    const PHRASE_MAX_CHARS = 45;
 
     const formatLabels: Record<string, string> = {
         LANDSCAPE_16_9: '16:9',
@@ -437,7 +488,7 @@
     const aiCount = ref(3);
     const generatingPhrases = ref(false);
     const fadeRange = ref<[number, number]>([0, 0]);
-    const manualAssign = ref(false);
+    const autoAssign = ref(false);
 
     const phrasesListRef = ref<HTMLElement | null>(null);
     const phraseItems = ref<{ phrase: string; asset: Asset }[]>([]);
@@ -601,10 +652,10 @@
 
     function handlePrimary() {
         if (!canSubmit.value) return;
-        if (manualAssign.value) {
-            goToStep2();
-        } else {
+        if (autoAssign.value) {
             submit();
+        } else {
+            goToStep2();
         }
     }
 
