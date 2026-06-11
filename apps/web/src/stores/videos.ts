@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import api from '@/lib/api';
 import type { Video } from '@/types/video';
+import type { RpgSettings } from '@/types/rpgSettings';
 
 export const useVideosStore = defineStore('videos', () => {
     const items = ref<Video[]>([]);
@@ -23,7 +24,16 @@ export const useVideosStore = defineStore('videos', () => {
         items.value = items.value.filter((v) => v.id !== id);
     }
 
-    async function requeue(id: string, updates: { phrase?: string; assetId?: string }) {
+    async function requeue(
+        id: string,
+        updates: {
+            phrase?: string;
+            assetId?: string;
+            choiceLeft?: string;
+            choiceRight?: string;
+            settings?: RpgSettings;
+        },
+    ) {
         const { data } = await api.patch<Video>(`/api/videos/${id}`, updates);
         const idx = items.value.findIndex((v) => v.id === id);
         if (idx !== -1) items.value[idx] = { ...items.value[idx], ...data };

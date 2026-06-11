@@ -7,63 +7,72 @@
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div class="flex items-center gap-3 min-w-0">
                 <div
-                    v-if="session.audio"
+                    v-if="session.audio || session.noAudio"
                     class="relative size-9 rounded-md bg-muted shrink-0 overflow-hidden flex items-center justify-center"
                 >
                     <img
-                        v-if="session.audio.coverUrl"
+                        v-if="session.audio?.coverUrl"
                         :src="session.audio.coverUrl"
                         class="absolute inset-0 size-full object-cover"
                     />
+                    <VolumeX v-else-if="session.noAudio" class="size-4 text-muted-foreground" />
                     <Music v-else class="size-4 text-muted-foreground" />
                 </div>
                 <div class="min-w-0">
                     <!-- Mobile: session name as title -->
                     <h2 class="text-xl font-semibold truncate sm:hidden">{{ sessionTitle }}</h2>
-                    <!-- Desktop: audio title (original) -->
+                    <!-- Desktop: audio title -->
                     <p class="text-sm font-medium truncate hidden sm:block">
-                        {{ session.audio?.title }}
-                    </p>
-                    <!-- Mobile: audio info as description -->
-                    <p class="text-sm text-muted-foreground truncate mt-0.5 sm:hidden">
                         {{
-                            session.audio
-                                ? session.audio.title +
-                                    (session.audio.artist ? ' – ' + session.audio.artist : '')
-                                : 'No audio track'
+                            session.noAudio
+                                ? 'No audio'
+                                : (session.audio?.title ?? 'No audio track')
                         }}
                     </p>
-                    <!-- Desktop: artist (original) -->
-                    <p
-                        v-if="session.audio?.artist"
-                        class="text-xs text-muted-foreground truncate hidden sm:block"
-                    >
-                        {{ session.audio.artist }}
-                    </p>
+                    <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
+                        <span class="text-xs text-muted-foreground truncate sm:hidden">
+                            {{
+                                session.noAudio
+                                    ? 'No audio'
+                                    : session.audio
+                                        ? session.audio.title +
+                                            (session.audio.artist ? ' – ' + session.audio.artist : '')
+                                        : 'No audio track'
+                            }}
+                        </span>
+                        <!-- Desktop: artist -->
+                        <span
+                            v-if="!session.noAudio && session.audio?.artist"
+                            class="text-xs text-muted-foreground truncate hidden sm:block"
+                        >
+                            {{ session.audio.artist }}
+                        </span>
+                    </div>
                 </div>
             </div>
 
-            <div class="flex items-center gap-1">
-                <!-- Mobile: text button -->
-                <button
-                    class="sm:hidden inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm border border-border bg-muted/20 hover:bg-muted/40 text-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            <div class="flex items-center gap-2">
+                <Badge
+                    v-if="session.preset"
+                    variant="secondary"
+                    class="flex items-center gap-1 shrink-0"
+                >
+                    <span
+                    >{{ session.preset.name }} ({{ formatLabels[session.preset.format] }})</span
+                    >
+                    <component :is="formatIcons[session.preset.format]" class="size-3" />
+                </Badge>
+                <Button
+                    v-if="session.videos?.length"
+                    size="sm"
+                    variant="outline"
                     :disabled="downloading || !completedVideos.length"
                     @click="downloadAll"
                 >
                     <Loader2 v-if="downloading" class="size-4 animate-spin" />
                     <Download v-else class="size-4" />
                     Download all
-                </button>
-                <!-- Desktop: icon button (original) -->
-                <button
-                    class="hidden sm:block p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                    title="Download all videos"
-                    :disabled="downloading || !completedVideos.length"
-                    @click="downloadAll"
-                >
-                    <Loader2 v-if="downloading" class="size-4 animate-spin" />
-                    <Download v-else class="size-4" />
-                </button>
+                </Button>
             </div>
         </div>
 
@@ -131,7 +140,9 @@
     import { computed, onMounted, onUnmounted, ref } from 'vue';
     import { useRoute, useRouter } from 'vue-router';
     import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
-    import { Download, Film, Loader2, Music } from 'lucide-vue-next';
+    import { Download, Film, Loader2, Music, VolumeX } from 'lucide-vue-next';
+    import { Badge } from '@/components/ui/badge';
+    import { formatIcons, formatLabels } from '@/lib/presetFormat';
     import {
         AlertDialog,
         AlertDialogAction,
@@ -148,6 +159,7 @@
     import { useSessionsStore } from '@/stores/sessions';
     import { useVideosStore } from '@/stores/videos';
     import type { Video } from '@/types/video';
+    import Button from '@/components/ui/button/Button.vue';
 
     const route = useRoute();
     const router = useRouter();
@@ -164,6 +176,7 @@
         COMPLETED: 2,
         FAILED: 2,
     };
+
     const sortedVideos = computed(() => {
         if (!session.value?.videos) return [];
         return [...session.value.videos].sort((a, b) => {

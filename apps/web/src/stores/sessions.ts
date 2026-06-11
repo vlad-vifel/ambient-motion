@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import api from '@/lib/api';
 import type { GenerationSession } from '@/types/session';
 import type { Video } from '@/types/video';
+import type { RpgSettings } from '@/types/rpgSettings';
 
 export const useSessionsStore = defineStore('sessions', () => {
     const items = ref<GenerationSession[]>([]);
@@ -28,7 +29,8 @@ export const useSessionsStore = defineStore('sessions', () => {
 
     async function create(payload: {
         name?: string;
-        audioId: string;
+        audioId?: string;
+        noAudio?: boolean;
         assetIds: string[];
         durationMs: number;
         fadeInMs: number;
@@ -56,7 +58,13 @@ export const useSessionsStore = defineStore('sessions', () => {
 
     async function generate(
         id: string,
-        phrases: { phrase: string; assetId?: string | null }[],
+        phrases: {
+            phrase: string;
+            choiceLeft?: string | null;
+            choiceRight?: string | null;
+            assetId?: string | null;
+            settings?: RpgSettings | null;
+        }[],
     ): Promise<Video[]> {
         const { data } = await api.post<{ jobs: Video[] }>(`/api/sessions/${id}/generate`, {
             phrases,

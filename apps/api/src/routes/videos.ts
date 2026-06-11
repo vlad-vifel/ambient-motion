@@ -1,4 +1,5 @@
 import { Response, Router } from 'express';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { deleteFile, generateSignedUrl } from '../lib/s3';
 import { AuthRequest, requireAuth } from '../middleware/auth';
@@ -47,6 +48,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
             include: {
                 session: { select: { id: true, name: true } },
                 asset: { select: { id: true, url: true, filename: true } },
+                preset: { select: { id: true, name: true, component: true, format: true } },
             },
         });
 
@@ -63,6 +65,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
             include: {
                 session: { select: { id: true, name: true } },
                 asset: { select: { id: true, url: true, filename: true } },
+                preset: { select: { id: true, name: true, component: true, format: true } },
             },
         });
 
@@ -113,10 +116,22 @@ router.get('/:id/download', async (req: AuthRequest, res: Response) => {
 
 router.patch('/:id', async (req: AuthRequest, res: Response) => {
     try {
-        const { phrase, assetId } = req.body as { phrase?: string; assetId?: string };
+        const { phrase, assetId, choiceLeft, choiceRight, settings } = req.body as {
+            phrase?: string;
+            assetId?: string;
+            choiceLeft?: string;
+            choiceRight?: string;
+            settings?: unknown;
+        };
 
-        if (!phrase?.trim() && !assetId) {
-            res.status(400).json({ error: 'phrase or assetId is required' });
+        if (
+            !phrase?.trim() &&
+            !assetId &&
+            choiceLeft == null &&
+            choiceRight == null &&
+            settings === undefined
+        ) {
+            res.status(400).json({ error: 'at least one field to update is required' });
             return;
         }
 
@@ -132,8 +147,22 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
 
         const newPhrase = phrase?.trim() ?? video.phrase;
         const newAssetId = assetId ?? video.assetId;
+        const newChoiceLeft =
+            choiceLeft !== undefined ? choiceLeft.trim() || null : video.choiceLeft;
+        const newChoiceRight =
+            choiceRight !== undefined ? choiceRight.trim() || null : video.choiceRight;
+        const newSettings = settings !== undefined ? settings : video.settings;
 
-        if (newPhrase === video.phrase && newAssetId === video.assetId) {
+        const settingsChanged =
+            settings !== undefined && JSON.stringify(settings) !== JSON.stringify(video.settings);
+
+        if (
+            newPhrase === video.phrase &&
+            newAssetId === video.assetId &&
+            newChoiceLeft === video.choiceLeft &&
+            newChoiceRight === video.choiceRight &&
+            !settingsChanged
+        ) {
             res.status(400).json({ error: 'No changes detected' });
             return;
         }
@@ -154,16 +183,19 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
         if (video.thumbnailUrl) await deleteFile(video.thumbnailUrl, req.userId!);
 
         const sourceImageUrl = generateSignedUrl(assetRecord.storageKey, req.userId!, 24 * 3600);
-        const sourceAudioUrl = generateSignedUrl(
-            `audio/${video.audio!.filename}`,
-            req.userId!,
-            24 * 3600,
-        );
+        const sourceAudioUrl = video.audio
+            ? generateSignedUrl(`audio/${video.audio.filename}`, req.userId!, 24 * 3600)
+            : '';
 
         const updated = await prisma.video.update({
             where: { id: String(req.params.id) },
             data: {
                 phrase: newPhrase,
+                choiceLeft: newChoiceLeft,
+                choiceRight: newChoiceRight,
+                settings: (newSettings ?? Prisma.JsonNull) as
+                    | Prisma.InputJsonValue
+                    | typeof Prisma.JsonNull,
                 assetId: newAssetId,
                 status: 'QUEUED',
                 videoUrl: null,
@@ -185,6 +217,7 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
             durationMs: updated.durationMs,
             fadeInMs: updated.fadeInMs,
             fadeOutMs: updated.fadeOutMs,
+            settings: updated.settings ?? undefined,
             userId: updated.userId,
         });
 

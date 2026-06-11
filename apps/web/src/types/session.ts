@@ -15,6 +15,9 @@ export interface GenerationSession {
     durationMs: number;
     audioId: string | null;
     audio?: Audio | null;
+    noAudio: boolean;
+    presetId: string;
+    preset?: { id: string; name: string; component: string; format: string } | null;
     assets: SessionAssetEntry[];
     videos: Video[];
     videoCounts?: {

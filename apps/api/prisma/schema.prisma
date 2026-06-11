@@ -79,6 +79,7 @@ model GenerationSession {
 
   audioId String?
   audio   Audio?  @relation(fields: [audioId], references: [id], onDelete: SetNull)
+  noAudio Boolean @default(false)
 
   presetId String
   preset   VideoPreset @relation(fields: [presetId], references: [id])
@@ -127,11 +128,15 @@ model Video {
 
   audioId        String?
   audio          Audio?  @relation(fields: [audioId], references: [id], onDelete: SetNull)
+  noAudio        Boolean @default(false)
   sourceAudioUrl String  @default("")
 
   durationMs  Int    @default(30000)
   fadeInMs    Int    @default(0)
   fadeOutMs   Int    @default(0)
+  choiceLeft  String?
+  choiceRight String?
+  settings    Json?
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)

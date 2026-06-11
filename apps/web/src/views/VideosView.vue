@@ -7,10 +7,23 @@
                     All generated videos across sessions
                 </p>
             </div>
-            <Badge v-if="videosStore.items.length" variant="secondary">
-                {{ videosStore.items.length }}
-                {{ videosStore.items.length === 1 ? 'video' : 'videos' }}
-            </Badge>
+            <div class="flex items-center gap-2 shrink-0">
+                <Badge v-if="videosStore.items.length" variant="secondary">
+                    {{ videosStore.items.length }}
+                    {{ videosStore.items.length === 1 ? 'video' : 'videos' }}
+                </Badge>
+                <Button
+                    v-if="completedVideos.length"
+                    size="sm"
+                    variant="outline"
+                    :disabled="downloading"
+                    @click="downloadAll"
+                >
+                    <Loader2 v-if="downloading" class="size-3.5 mr-1.5 animate-spin" />
+                    <Download v-else class="size-3.5 mr-1.5" />
+                    Download all
+                </Button>
+            </div>
         </div>
 
         <div class="flex flex-col sm:flex-row gap-2">
@@ -18,19 +31,41 @@
                 <Search
                     class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none"
                 />
-                <Input v-model="searchQuery" placeholder="Search" class="pl-9" />
+                <Input v-model="searchQuery" placeholder="Search" class="pl-9 h-8!" />
             </div>
-            <Select v-model="filterAudioId">
-                <SelectTrigger class="w-full sm:w-56 shrink-0">
-                    <SelectValue placeholder="All audio" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all">All audio</SelectItem>
-                    <SelectItem v-for="track in audioStore.items" :key="track.id" :value="track.id">
-                        {{ track.title }} – {{ track.artist }}
-                    </SelectItem>
-                </SelectContent>
-            </Select>
+            <div class="grid grid-cols-2 sm:flex gap-2">
+                <Select v-model="filterPresetId">
+                    <SelectTrigger class="h-8! w-full sm:w-44 shrink-0">
+                        <SelectValue placeholder="All presets" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All presets</SelectItem>
+                        <SelectItem
+                            v-for="preset in presetsStore.items"
+                            :key="preset.id"
+                            :value="preset.id"
+                        >
+                            {{ preset.name }}
+                        </SelectItem>
+                    </SelectContent>
+                </Select>
+                <Select v-model="filterAudioId">
+                    <SelectTrigger class="h-8! w-full sm:w-44 shrink-0">
+                        <SelectValue placeholder="All audio" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All audio</SelectItem>
+                        <SelectItem value="none">No audio</SelectItem>
+                        <SelectItem
+                            v-for="track in audioStore.items"
+                            :key="track.id"
+                            :value="track.id"
+                        >
+                            {{ track.title }} – {{ track.artist }}
+                        </SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
         </div>
 
         <div
@@ -102,9 +137,10 @@
 </template>
 
 <script setup lang="ts">
-    import { Film, Search } from 'lucide-vue-next';
+    import { Download, Film, Loader2, Search } from 'lucide-vue-next';
     import { computed, onMounted, onUnmounted, ref } from 'vue';
     import { Badge } from '@/components/ui/badge';
+    import { Button } from '@/components/ui/button';
     import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
     import {
         AlertDialog,
@@ -128,15 +164,18 @@
     import VideoLightbox from '@/components/VideoLightbox.vue';
     import VideoListItem from '@/components/VideoListItem.vue';
     import { useAudioStore } from '@/stores/audio';
+    import { usePresetsStore } from '@/stores/presets';
     import { useVideosStore } from '@/stores/videos';
     import type { Video } from '@/types/video';
 
     const videosStore = useVideosStore();
     const audioStore = useAudioStore();
+    const presetsStore = usePresetsStore();
     const breadcrumbsComposable = useBreadcrumbs();
 
     const searchQuery = ref('');
     const filterAudioId = ref('all');
+    const filterPresetId = ref('all');
 
     const STATUS_ORDER: Record<string, number> = {
         QUEUED: 0,
@@ -162,8 +201,12 @@
         const query = searchQuery.value.trim().toLowerCase();
         return sortedVideos.value.filter((v) => {
             const matchesSearch = !query || v.phrase.toLowerCase().includes(query);
-            const matchesAudio = filterAudioId.value === 'all' || v.audioId === filterAudioId.value;
-            return matchesSearch && matchesAudio;
+            const matchesAudio =
+                filterAudioId.value === 'all' ||
+                (filterAudioId.value === 'none' ? v.noAudio : v.audioId === filterAudioId.value);
+            const matchesPreset =
+                filterPresetId.value === 'all' || v.presetId === filterPresetId.value;
+            return matchesSearch && matchesAudio && matchesPreset;
         });
     });
 
@@ -179,6 +222,7 @@
     onMounted(() => {
         videosStore.startPolling();
         audioStore.fetchAll();
+        presetsStore.fetchAll();
         breadcrumbsComposable.setBreadcrumbs([{ label: 'Videos' }]);
     });
 
@@ -189,6 +233,34 @@
     const completedVideos = computed(() =>
         filteredVideos.value.filter((v) => v.status === 'COMPLETED' && v.videoUrl),
     );
+
+    const downloading = ref(false);
+
+    async function downloadAll() {
+        if (downloading.value || !completedVideos.value.length) return;
+        downloading.value = true;
+        try {
+            const apiBase = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+            const token = localStorage.getItem('token');
+            for (const video of completedVideos.value) {
+                const response = await fetch(`${apiBase}/api/videos/${video.id}/download`, {
+                    headers: token ? { Authorization: `Bearer ${token}` } : {},
+                });
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `${video.phrase}.mp4`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                await new Promise((r) => setTimeout(r, 300));
+            }
+        } finally {
+            downloading.value = false;
+        }
+    }
 
     function openVideo(video: Video) {
         if (video.status !== 'COMPLETED' || !video.videoUrl) return;

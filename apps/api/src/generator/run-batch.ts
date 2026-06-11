@@ -48,11 +48,9 @@ async function runJob(videoId: string): Promise<void> {
         });
 
         const sourceImageUrl = generateSignedUrl(video.asset!.storageKey, video.userId, 24 * 3600);
-        const sourceAudioUrl = generateSignedUrl(
-            `audio/${video.audio!.filename}`,
-            video.userId,
-            24 * 3600,
-        );
+        const sourceAudioUrl = video.audio
+            ? generateSignedUrl(`audio/${video.audio.filename}`, video.userId, 24 * 3600)
+            : '';
 
         const renderParams = {
             presetId: video.preset!.component,
@@ -62,12 +60,17 @@ async function runJob(videoId: string): Promise<void> {
             durationMs: video.durationMs,
             fadeInMs: video.fadeInMs,
             fadeOutMs: video.fadeOutMs,
+            choiceLeft: video.choiceLeft ?? undefined,
+            choiceRight: video.choiceRight ?? undefined,
+            settings: video.settings ?? undefined,
         };
 
         await renderVideo({ ...renderParams, outputPath: videoPath });
         console.log(`[Batch] [${videoId}] Video rendered`);
 
-        await applyGrainFilter(videoPath, videoPath);
+        if (video.preset!.id !== 'rpg-dialogue') {
+            await applyGrainFilter(videoPath, videoPath);
+        }
 
         await renderThumbnail({ ...renderParams, outputPath: thumbPath });
         console.log(`[Batch] [${videoId}] Thumbnail rendered`);

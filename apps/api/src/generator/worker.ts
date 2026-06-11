@@ -36,6 +36,9 @@ async function loop(): Promise<void> {
                 sourceImageUrl: true,
                 sourceAudioUrl: true,
                 phrase: true,
+                choiceLeft: true,
+                choiceRight: true,
+                settings: true,
                 durationMs: true,
                 fadeInMs: true,
                 fadeOutMs: true,
@@ -65,6 +68,9 @@ async function processJob(job: {
     sourceImageUrl: string;
     sourceAudioUrl: string;
     phrase: string;
+    choiceLeft: string | null;
+    choiceRight: string | null;
+    settings: unknown;
     durationMs: number;
     fadeInMs: number;
     fadeOutMs: number;
@@ -96,6 +102,9 @@ async function processJob(job: {
             imageUrl: job.sourceImageUrl,
             audioUrl: job.sourceAudioUrl,
             phrase: job.phrase,
+            choiceLeft: job.choiceLeft ?? undefined,
+            choiceRight: job.choiceRight ?? undefined,
+            settings: job.settings ?? undefined,
             durationMs: job.durationMs,
             fadeInMs: job.fadeInMs,
             fadeOutMs: job.fadeOutMs,
@@ -119,13 +128,15 @@ async function processJob(job: {
             throw err;
         }
 
-        console.log(`[Worker] Applying grain filter...`);
-        try {
-            await applyGrainFilter(videoPath, videoPath);
-            console.log(`[Worker] Grain filter applied`);
-        } catch (err) {
-            console.error(`[Worker] Grain filter failed:`, err);
-            throw err;
+        if (preset.id !== 'rpg-dialogue') {
+            console.log(`[Worker] Applying grain filter...`);
+            try {
+                await applyGrainFilter(videoPath, videoPath);
+                console.log(`[Worker] Grain filter applied`);
+            } catch (err) {
+                console.error(`[Worker] Grain filter failed:`, err);
+                throw err;
+            }
         }
 
         console.log(`[Worker] Starting thumbnail render...`);

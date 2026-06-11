@@ -7,6 +7,7 @@ export interface VideoDispatchPayload {
     durationMs: number;
     fadeInMs: number;
     fadeOutMs: number;
+    settings?: unknown;
     userId: string;
 }
 

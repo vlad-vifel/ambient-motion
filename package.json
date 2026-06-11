@@ -6,9 +6,10 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "concurrently -n web,api -c cyan,magenta \"npm run dev --workspace=apps/web\" \"npm run dev --workspace=apps/api\"",
+    "dev": "concurrently -n web,api,worker -c cyan,magenta,yellow \"npm run dev --workspace=apps/web\" \"npm run dev --workspace=apps/api\" \"npm run worker --workspace=apps/api\"",
     "dev:web": "npm run dev --workspace=apps/web",
     "dev:api": "npm run dev --workspace=apps/api",
+    "dev:worker": "npm run worker --workspace=apps/api",
     "build:web": "npm run build --workspace=apps/web",
     "build:api": "npm run build --workspace=apps/api",
     "lint": "eslint . --fix --ext .ts,.tsx,.vue,.js,.jsx",

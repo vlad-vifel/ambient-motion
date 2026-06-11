@@ -9,50 +9,63 @@ interface RenderVideoParams {
     durationMs: number;
     fadeInMs: number;
     fadeOutMs: number;
+    choiceLeft?: string;
+    choiceRight?: string;
+    settings?: unknown;
     outputPath: string;
 }
 
 async function verifyAssetUrl(url: string, type: string): Promise<void> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
     try {
-        console.log(`[Render] Verifying ${type} URL...`);
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
-        try {
-            const response = await fetch(url, { method: 'HEAD', signal: controller.signal });
-            clearTimeout(timeoutId);
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            console.log(`[Render] ${type} URL verified - ${response.headers.get('content-type')}`);
-        } catch (err) {
-            clearTimeout(timeoutId);
-            throw err;
+        const response = await fetch(url, { method: 'HEAD', signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (!response.ok) {
+            console.warn(`[Render] ${type} URL returned ${response.status} — continuing anyway`);
+        } else {
+            console.log(`[Render] ${type} URL ok - ${response.headers.get('content-type')}`);
         }
     } catch (err) {
+        clearTimeout(timeoutId);
         const message = err instanceof Error ? err.message : String(err);
-        console.error(`[Render] Failed to verify ${type} URL:`, message);
-        throw new Error(`Cannot access ${type}: ${message}`);
+        console.warn(`[Render] ${type} URL check failed (${message}) — continuing anyway`);
     }
 }
 
 export async function renderVideo(params: RenderVideoParams): Promise<void> {
-    const { presetId, imageUrl, audioUrl, phrase, durationMs, fadeInMs, fadeOutMs, outputPath } =
-        params;
+    const {
+        presetId,
+        imageUrl,
+        audioUrl,
+        phrase,
+        durationMs,
+        fadeInMs,
+        fadeOutMs,
+        choiceLeft,
+        choiceRight,
+        settings,
+        outputPath,
+    } = params;
 
     console.log(`[Render] Getting bundle...`);
     const serveUrl = await getBundle();
     console.log(`[Render] Bundle ready at ${serveUrl}`);
 
-    const inputProps = { imageUrl, audioUrl, phrase, durationMs, fadeInMs, fadeOutMs };
+    const inputProps = {
+        imageUrl,
+        audioUrl,
+        phrase,
+        durationMs,
+        fadeInMs,
+        fadeOutMs,
+        choiceLeft,
+        choiceRight,
+        settings,
+    };
 
-    console.log(`[Render] Verifying asset URLs...`);
-    try {
-        await verifyAssetUrl(imageUrl, 'image');
-        await verifyAssetUrl(audioUrl, 'audio');
-    } catch (err) {
-        console.error(`[Render] Asset verification failed:`, err);
-        throw err;
-    }
+    await verifyAssetUrl(imageUrl, 'image');
+    await verifyAssetUrl(audioUrl, 'audio');
 
     console.log(`[Render] Selecting composition ${presetId}...`);
     const composition = await selectComposition({

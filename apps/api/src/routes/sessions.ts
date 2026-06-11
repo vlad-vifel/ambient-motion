@@ -1,4 +1,5 @@
 import { Response, Router } from 'express';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { generateSignedUrl } from '../lib/s3';
 import { AuthRequest, requireAuth } from '../middleware/auth';
@@ -20,6 +21,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
                     include: { asset: { select: { id: true, url: true, filename: true } } },
                     take: 4,
                 },
+                preset: { select: { id: true, name: true, component: true, format: true } },
                 _count: { select: { videos: true } },
             },
         });
@@ -56,27 +58,33 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
 router.post('/', async (req: AuthRequest, res: Response) => {
     try {
-        const { name, audioId, assetIds, durationMs, fadeInMs, fadeOutMs, presetId } = req.body as {
-            name?: string;
-            audioId: string;
-            assetIds: string[];
-            durationMs: number;
-            fadeInMs?: number;
-            fadeOutMs?: number;
-            presetId: string;
-        };
+        const { name, audioId, noAudio, assetIds, durationMs, fadeInMs, fadeOutMs, presetId } =
+            req.body as {
+                name?: string;
+                audioId?: string;
+                noAudio?: boolean;
+                assetIds: string[];
+                durationMs: number;
+                fadeInMs?: number;
+                fadeOutMs?: number;
+                presetId: string;
+            };
 
-        if (!audioId || !assetIds?.length || durationMs == null || !presetId) {
+        if ((!audioId && !noAudio) || !assetIds?.length || durationMs == null || !presetId) {
             res.status(400).json({
-                error: 'audioId, assetIds, durationMs and presetId are required',
+                error: 'audioId (or noAudio), assetIds, durationMs and presetId are required',
             });
             return;
         }
 
-        const audio = await prisma.audio.findFirst({ where: { id: audioId, userId: req.userId! } });
-        if (!audio) {
-            res.status(404).json({ error: 'Audio not found' });
-            return;
+        if (!noAudio) {
+            const audio = await prisma.audio.findFirst({
+                where: { id: audioId, userId: req.userId! },
+            });
+            if (!audio) {
+                res.status(404).json({ error: 'Audio not found' });
+                return;
+            }
         }
 
         const assets = await prisma.asset.findMany({
@@ -99,7 +107,8 @@ router.post('/', async (req: AuthRequest, res: Response) => {
                 durationMs,
                 fadeInMs: fadeInMs ?? 0,
                 fadeOutMs: fadeOutMs ?? 0,
-                audioId,
+                audioId: noAudio ? null : audioId,
+                noAudio: noAudio ?? false,
                 presetId,
                 userId: req.userId!,
                 assets: {
@@ -125,7 +134,14 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
             include: {
                 audio: true,
                 assets: { include: { asset: true } },
-                videos: { orderBy: { createdAt: 'desc' } },
+                preset: { select: { id: true, name: true, component: true, format: true } },
+                videos: {
+                    orderBy: { createdAt: 'desc' },
+                    include: {
+                        asset: { select: { id: true, url: true, filename: true } },
+                        preset: { select: { id: true, name: true, component: true, format: true } },
+                    },
+                },
             },
         });
 
@@ -199,7 +215,13 @@ router.post('/:id/generate', async (req: AuthRequest, res: Response) => {
     try {
         const rawPhrases = req.body.phrases as (
             | string
-            | { phrase: string; assetId?: string | null }
+            | {
+                  phrase: string;
+                  choiceLeft?: string | null;
+                  choiceRight?: string | null;
+                  assetId?: string | null;
+                  settings?: unknown;
+              }
         )[];
 
         if (!rawPhrases?.length) {
@@ -208,7 +230,9 @@ router.post('/:id/generate', async (req: AuthRequest, res: Response) => {
         }
 
         const phraseInputs = rawPhrases.map((p) =>
-            typeof p === 'string' ? { phrase: p, assetId: null } : p,
+            typeof p === 'string'
+                ? { phrase: p, choiceLeft: null, choiceRight: null, assetId: null, settings: null }
+                : p,
         );
 
         const session = await prisma.generationSession.findFirst({
@@ -225,7 +249,7 @@ router.post('/:id/generate', async (req: AuthRequest, res: Response) => {
             return;
         }
 
-        if (!session.audio) {
+        if (!session.noAudio && !session.audio) {
             res.status(400).json({ error: 'Session audio has been deleted' });
             return;
         }
@@ -235,8 +259,9 @@ router.post('/:id/generate', async (req: AuthRequest, res: Response) => {
             return;
         }
 
-        const audioStorageKey = `audio/${session.audio.filename}`;
-        const sourceAudioUrl = generateSignedUrl(audioStorageKey, req.userId!, 24 * 3600);
+        const sourceAudioUrl = session.audio
+            ? generateSignedUrl(`audio/${session.audio.filename}`, req.userId!, 24 * 3600)
+            : '';
 
         const shuffledAssets = [...session.assets].sort(() => Math.random() - 0.5);
 
@@ -254,7 +279,7 @@ router.post('/:id/generate', async (req: AuthRequest, res: Response) => {
         const jobs = [];
         let shuffleIdx = 0;
 
-        for (const { phrase, assetId } of phraseInputs) {
+        for (const { phrase, choiceLeft, choiceRight, assetId, settings } of phraseInputs) {
             let assetRecord;
             if (assetId) {
                 assetRecord = assetMap.get(assetId);
@@ -275,12 +300,16 @@ router.post('/:id/generate', async (req: AuthRequest, res: Response) => {
                 data: {
                     title: phrase,
                     phrase,
+                    choiceLeft: choiceLeft ?? null,
+                    choiceRight: choiceRight ?? null,
+                    settings: (settings ?? undefined) as Prisma.InputJsonValue | undefined,
                     status: 'QUEUED',
                     sessionId: session.id,
                     presetId: session.presetId,
                     assetId: assetRecord.id,
                     sourceImageUrl,
                     audioId: session.audioId,
+                    noAudio: session.noAudio,
                     sourceAudioUrl,
                     durationMs: session.durationMs,
                     fadeInMs: session.fadeInMs,

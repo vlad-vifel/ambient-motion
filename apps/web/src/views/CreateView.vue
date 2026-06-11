@@ -9,6 +9,21 @@
             </div>
 
             <div class="flex items-center gap-2">
+                <Select v-if="availablePresets.length > 1" v-model="filterPresetId">
+                    <SelectTrigger class="h-8! w-40 text-sm">
+                        <SelectValue placeholder="All presets" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All presets</SelectItem>
+                        <SelectItem
+                            v-for="preset in availablePresets"
+                            :key="preset.id"
+                            :value="preset.id"
+                        >
+                            {{ preset.name }}
+                        </SelectItem>
+                    </SelectContent>
+                </Select>
                 <Button size="sm" @click="$router.push('/create/new')">
                     <Plus class="size-4" />
                     Create videos
@@ -33,7 +48,7 @@
 
         <div v-else-if="sessionsStore.items.length" class="flex flex-col gap-2">
             <div
-                v-for="session in sessionsStore.items"
+                v-for="session in filteredSessions"
                 :key="session.id"
                 class="group flex items-center gap-3 px-4 py-3 rounded-lg border border-transparent bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer"
                 @click="$router.push(`/create/${session.id}`)"
@@ -46,20 +61,39 @@
                         :src="session.audio.coverUrl"
                         class="absolute inset-0 size-full object-cover"
                     />
+                    <VolumeX v-else-if="session.noAudio" class="size-4 text-muted-foreground" />
                     <Music v-else class="size-4 text-muted-foreground" />
                 </div>
 
-                <div class="flex-1 min-w-0">
+                <div class="flex-1 min-w-0 flex flex-col">
                     <p class="text-sm font-medium truncate">
                         {{ sessionLabel(session) }}
                     </p>
-                    <p v-if="session.audio" class="text-xs text-muted-foreground truncate">
-                        {{ session.audio.title
-                        }}{{ session.audio.artist ? ` – ${session.audio.artist}` : '' }}
-                    </p>
+                    <span
+                        v-if="session.audio || session.noAudio"
+                        class="flex text-xs text-muted-foreground truncate"
+                    >
+                        {{
+                            session.noAudio
+                                ? 'No audio'
+                                : session.audio!.title +
+                                    (session.audio!.artist ? ` – ${session.audio!.artist}` : '')
+                        }}
+                    </span>
                 </div>
 
-                <div class="hidden sm:group-hover:flex items-center gap-1 shrink-0 ml-2">
+                <Badge
+                    v-if="session.preset"
+                    variant="secondary"
+                    class="flex items-center gap-1 shrink-0"
+                >
+                    <span
+                    >{{ session.preset.name }} ({{ formatLabels[session.preset.format] }})</span
+                    >
+                    <component :is="formatIcons[session.preset.format]" class="size-3" />
+                </Badge>
+
+                <div class="hidden sm:group-hover:flex items-center gap-1 shrink-0">
                     <button
                         class="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                         title="Delete"
@@ -112,8 +146,8 @@
 </template>
 
 <script setup lang="ts">
-    import { Clapperboard, MoreVertical, Music, Plus, Trash2 } from 'lucide-vue-next';
-    import { onMounted, ref } from 'vue';
+    import { Clapperboard, MoreVertical, Music, Plus, Trash2, VolumeX } from 'lucide-vue-next';
+    import { computed, onMounted, ref } from 'vue';
     import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
     import {
         AlertDialog,
@@ -131,15 +165,40 @@
         DropdownMenuItem,
         DropdownMenuTrigger,
     } from '@/components/ui/dropdown-menu';
+    import {
+        Select,
+        SelectContent,
+        SelectItem,
+        SelectTrigger,
+        SelectValue,
+    } from '@/components/ui/select';
     import { Button } from '@/components/ui/button';
+    import { Badge } from '@/components/ui/badge';
+    import { formatIcons, formatLabels } from '@/lib/presetFormat';
     import { useSessionsStore } from '@/stores/sessions';
     import type { GenerationSession } from '@/types/session';
 
     const sessionsStore = useSessionsStore();
     const breadcrumbsComposable = useBreadcrumbs();
 
+    const filterPresetId = ref('all');
     const deleteOpen = ref(false);
     const deleteSessionId = ref('');
+
+    const availablePresets = computed(() => {
+        const seen = new Map<string, { id: string; name: string }>();
+        for (const s of sessionsStore.items) {
+            if (s.preset && !seen.has(s.preset.id)) {
+                seen.set(s.preset.id, s.preset);
+            }
+        }
+        return [...seen.values()];
+    });
+
+    const filteredSessions = computed(() => {
+        if (filterPresetId.value === 'all') return sessionsStore.items;
+        return sessionsStore.items.filter((s) => s.presetId === filterPresetId.value);
+    });
 
     onMounted(async () => {
         await sessionsStore.fetchAll();

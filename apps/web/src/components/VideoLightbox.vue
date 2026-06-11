@@ -14,7 +14,8 @@
                 :src="(item as LightboxVideo).src"
                 controls
                 autoplay
-                class="max-w-full max-h-full rounded-md"
+                class="rounded-md"
+                style="max-height: calc(95vh - 140px); max-width: 100%; width: auto; height: auto"
             />
         </template>
         <template #footer="{ item }">

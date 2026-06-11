@@ -135,7 +135,12 @@
     const visibleFolders = computed(() => (currentFolder.value ? [] : folders.value));
     const displayedAssets = computed(() => {
         const excluded = new Set(props.excludeAssetIds ?? []);
-        return assets.value.filter((a) => !a.isUsed && !excluded.has(a.id));
+        const initialId = props.initialAsset?.id;
+        const folderId = currentFolder.value?.id ?? null;
+        return assets.value.filter(
+            (a) =>
+                a.folderId === folderId && (!a.isUsed || a.id === initialId) && !excluded.has(a.id),
+        );
     });
 
     watch(
@@ -144,39 +149,42 @@
             if (v) {
                 currentFolder.value = null;
                 selected.value = props.initialAsset ?? null;
-                await loadRoot();
+                await loadAll();
             }
         },
     );
 
-    async function loadRoot() {
+    async function loadAll() {
         loading.value = true;
         try {
             const [foldersRes, assetsRes] = await Promise.all([
                 api.get<FolderItem[]>('/api/folders'),
-                api.get<Asset[]>('/api/assets', { params: { folderId: 'root' } }),
+                api.get<Asset[]>('/api/assets'),
             ]);
             folders.value = foldersRes.data;
             assets.value = assetsRes.data;
+
+            const initialId = props.initialAsset?.id;
+            if (initialId) {
+                const found = assets.value.find((a) => a.id === initialId);
+                if (found) {
+                    selected.value = found;
+                    currentFolder.value = found.folderId
+                        ? (folders.value.find((f) => f.id === found.folderId) ?? null)
+                        : null;
+                }
+            }
         } finally {
             loading.value = false;
         }
     }
 
-    async function enterFolder(folder: FolderItem) {
+    function enterFolder(folder: FolderItem) {
         currentFolder.value = folder;
-        loading.value = true;
-        try {
-            const res = await api.get<Asset[]>('/api/assets', { params: { folderId: folder.id } });
-            assets.value = res.data;
-        } finally {
-            loading.value = false;
-        }
     }
 
-    async function exitFolder() {
+    function exitFolder() {
         currentFolder.value = null;
-        await loadRoot();
     }
 
     function onCancel() {
