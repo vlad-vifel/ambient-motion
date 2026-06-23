@@ -1,6 +1,9 @@
 <template>
     <div class="flex flex-col gap-6 max-w-xl mx-auto w-full">
-        <template v-if="step === 1">
+        <div v-if="!ready" class="flex items-center justify-center h-64">
+            <Loader2 class="size-6 text-muted-foreground animate-spin" />
+        </div>
+        <template v-else-if="step === 1">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h2 class="text-xl font-semibold">Create videos</h2>
@@ -302,29 +305,27 @@
                 <template v-if="isRpgPreset">
                     <div ref="phrasesListRef" class="flex flex-col gap-3">
                         <div
-                            v-for="(_, i) in rpgEntries"
+                            v-for="(entry, i) in entries"
                             :key="i"
                             class="p-3 rounded-lg border border-border bg-muted/10"
                         >
                             <RpgEntryCard
-                                :phrase="rpgEntries[i].phrase"
-                                :choice-left="rpgEntries[i].choiceLeft"
-                                :choice-right="rpgEntries[i].choiceRight"
-                                :on-remove="
-                                    rpgEntries.length > 1 ? () => removeRpgEntry(i) : undefined
-                                "
-                                @update:phrase="rpgEntries[i].phrase = $event"
-                                @update:choice-left="rpgEntries[i].choiceLeft = $event"
-                                @update:choice-right="rpgEntries[i].choiceRight = $event"
+                                :phrase="entry.phrase"
+                                :choice-left="entry.choiceLeft"
+                                :choice-right="entry.choiceRight"
+                                :on-remove="entries.length > 1 ? () => removeEntry(i) : undefined"
+                                @update:phrase="entry.phrase = $event"
+                                @update:choice-left="entry.choiceLeft = $event"
+                                @update:choice-right="entry.choiceRight = $event"
                             />
                         </div>
                     </div>
                     <button
                         type="button"
                         class="self-start text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-                        @click="addRpgEntry"
+                        @click="addEntry"
                     >
-                        <Plus class="size-3" />
+                        <Plus class="size-3.5" />
                         Add video
                     </button>
                 </template>
@@ -332,10 +333,14 @@
                 <template v-else>
                     <TooltipProvider>
                         <div ref="phrasesListRef" class="flex flex-col gap-2">
-                            <div v-for="(_, i) in phrases" :key="i" class="flex items-center gap-2">
+                            <div
+                                v-for="(entry, i) in entries"
+                                :key="i"
+                                class="flex items-center gap-2"
+                            >
                                 <div class="relative flex-1">
-                                    <Input v-model="phrases[i]" placeholder="Type a phrase" />
-                                    <Tooltip v-if="phrases[i].length > PHRASE_MAX_CHARS">
+                                    <Input v-model="entry.phrase" placeholder="Type a phrase" />
+                                    <Tooltip v-if="entry.phrase.length > PHRASE_MAX_CHARS">
                                         <TooltipTrigger as-child>
                                             <div
                                                 class="absolute right-2.5 top-1/2 -translate-y-1/2 cursor-default"
@@ -350,10 +355,10 @@
                                     </Tooltip>
                                 </div>
                                 <button
-                                    v-if="phrases.length > 1"
+                                    v-if="entries.length > 1"
                                     type="button"
                                     class="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
-                                    @click="removePhrase(i)"
+                                    @click="removeEntry(i)"
                                 >
                                     <X class="size-3.5" />
                                 </button>
@@ -363,9 +368,9 @@
                     <button
                         type="button"
                         class="self-start text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-                        @click="addPhrase"
+                        @click="addEntry"
                     >
-                        <Plus class="size-3" />
+                        <Plus class="size-3.5" />
                         Add phrase
                     </button>
                 </template>
@@ -376,7 +381,7 @@
             >
                 <Button size="sm" variant="ghost" @click="router.push('/create')">Cancel</Button>
                 <Button size="sm" :disabled="!canSubmit || submitting" @click="handlePrimary">
-                    <Loader2 v-if="submitting" class="size-3.5 animate-spin mr-1.5" />
+                    <Loader2 v-if="submitting" class="size-3.5 mr-1 animate-spin" />
                     <span>{{
                         autoAssign
                             ? `Create videos${filledCount ? ` (${filledCount})` : ''}`
@@ -398,7 +403,7 @@
 
             <div class="flex flex-col gap-4 sm:gap-3">
                 <div
-                    v-for="(item, i) in phraseItems"
+                    v-for="(entry, i) in entries"
                     :key="i"
                     class="flex flex-col sm:flex-row sm:items-center gap-3"
                 >
@@ -406,8 +411,8 @@
                         class="group relative size-32 rounded-lg overflow-hidden bg-muted shrink-0"
                     >
                         <img
-                            v-if="item.asset"
-                            :src="item.asset.url"
+                            v-if="entry.asset"
+                            :src="entry.asset.url"
                             class="size-full object-cover"
                         />
                         <div v-else class="size-full flex items-center justify-center">
@@ -425,28 +430,38 @@
                     <template v-if="isRpgPreset">
                         <div class="flex-1 p-3 rounded-lg border border-border bg-muted/10">
                             <RpgEntryCard
-                                :phrase="item.phrase"
-                                :choice-left="item.choiceLeft ?? ''"
-                                :choice-right="item.choiceRight ?? ''"
-                                @update:phrase="item.phrase = $event"
-                                @update:choice-left="item.choiceLeft = $event"
-                                @update:choice-right="item.choiceRight = $event"
+                                :phrase="entry.phrase"
+                                :choice-left="entry.choiceLeft"
+                                :choice-right="entry.choiceRight"
+                                @update:phrase="entry.phrase = $event"
+                                @update:choice-left="entry.choiceLeft = $event"
+                                @update:choice-right="entry.choiceRight = $event"
                             />
                         </div>
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            :disabled="!item.asset"
-                            @click="openSettings(item)"
-                        >
-                            <SlidersHorizontal class="size-3.5" />
-                        </Button>
+                        <div class="flex items-center gap-1 sm:flex-col shrink-0">
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                :disabled="!entry.asset"
+                                @click="openSettings(entry)"
+                            >
+                                <SlidersHorizontal class="size-3.5" />
+                            </Button>
+                            <button
+                                v-if="entries.length > 1"
+                                type="button"
+                                class="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                @click="removeEntry(i)"
+                            >
+                                <X class="size-3.5" />
+                            </button>
+                        </div>
                     </template>
                     <template v-else>
                         <TooltipProvider class="flex-1">
                             <div class="relative flex-1">
-                                <Input v-model="item.phrase" placeholder="Type a phrase" />
-                                <Tooltip v-if="item.phrase.length > PHRASE_MAX_CHARS">
+                                <Input v-model="entry.phrase" placeholder="Type a phrase" />
+                                <Tooltip v-if="entry.phrase.length > PHRASE_MAX_CHARS">
                                     <TooltipTrigger as-child>
                                         <div
                                             class="absolute right-2.5 top-1/2 -translate-y-1/2 cursor-default"
@@ -461,17 +476,34 @@
                                 </Tooltip>
                             </div>
                         </TooltipProvider>
+                        <button
+                            v-if="entries.length > 1"
+                            type="button"
+                            class="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0 self-start sm:self-auto"
+                            @click="removeEntry(i)"
+                        >
+                            <X class="size-3.5" />
+                        </button>
                     </template>
                 </div>
+
+                <button
+                    type="button"
+                    class="self-start text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+                    @click="addEntry"
+                >
+                    <Plus class="size-3.5" />
+                    {{ isRpgPreset ? 'Add video' : 'Add phrase' }}
+                </button>
             </div>
 
             <div
                 class="sticky bottom-0 bg-background border-t border-border/50 py-4 flex items-center justify-between"
             >
                 <Button size="sm" variant="ghost" @click="goBack">Back</Button>
-                <Button size="sm" :disabled="submitting" @click="submit">
-                    <Loader2 v-if="submitting" class="size-3.5 animate-spin mr-1.5" />
-                    {{ `Create video${phraseItems.length > 1 ? 's' : ''} (${phraseItems.length})` }}
+                <Button size="sm" :disabled="!canSubmit || submitting" @click="submit">
+                    <Loader2 v-if="submitting" class="size-3.5 mr-1 animate-spin" />
+                    {{ `Create video${filledCount > 1 ? 's' : ''} (${filledCount})` }}
                 </Button>
             </div>
         </template>
@@ -516,8 +548,8 @@
         X,
     } from 'lucide-vue-next';
     import type { Component } from 'vue';
-    import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
-    import { useRouter } from 'vue-router';
+    import { computed, nextTick, onMounted, onBeforeUnmount, reactive, ref, watch } from 'vue';
+    import { useRoute, useRouter } from 'vue-router';
     import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
     import AssetPickerDialog from '@/components/AssetPickerDialog.vue';
     import MiniAudioPlayer from '@/components/MiniAudioPlayer.vue';
@@ -580,40 +612,42 @@
     const sessionsStore = useSessionsStore();
     const presetsStore = usePresetsStore();
 
+    const route = useRoute();
+
+    type Entry = {
+        phrase: string;
+        choiceLeft: string;
+        choiceRight: string;
+        asset: Asset | null;
+        settings?: RpgSettings;
+    };
+
     const step = ref<1 | 2>(1);
     const submitting = ref(false);
     const error = ref('');
-    const phrases = ref<string[]>(['']);
-    const rpgEntries = ref<{ phrase: string; choiceLeft: string; choiceRight: string }[]>([
-        { phrase: '', choiceLeft: '', choiceRight: '' },
-    ]);
+    const entries = ref<Entry[]>([{ phrase: '', choiceLeft: '', choiceRight: '', asset: null }]);
     const allAssets = ref<Asset[]>([]);
     const dataLoaded = ref(false);
+    const ready = ref(false);
     const aiTheme = ref('');
     const aiCount = ref(3);
     const generatingPhrases = ref(false);
     const fadeRange = ref<[number, number]>([0, 0]);
     const autoAssign = ref(false);
 
-    const phrasesListRef = ref<HTMLElement | null>(null);
-    type PhraseItem = {
-        phrase: string;
-        choiceLeft?: string;
-        choiceRight?: string;
-        asset: Asset;
-        settings?: RpgSettings;
-    };
+    const draftId = ref<string | null>(null);
+    const populating = ref(false);
 
-    const phraseItems = ref<PhraseItem[]>([]);
+    const phrasesListRef = ref<HTMLElement | null>(null);
     const pickerOpen = ref(false);
     const pickerIndex = ref(0);
     const pickerInitialAsset = ref<Asset | null>(null);
     const pickerExcludeIds = ref<string[]>([]);
     const settingsOpen = ref(false);
-    const settingsItem = ref<PhraseItem | null>(null);
+    const settingsItem = ref<Entry | null>(null);
 
-    function openSettings(item: PhraseItem) {
-        settingsItem.value = item;
+    function openSettings(entry: Entry) {
+        settingsItem.value = entry;
         settingsOpen.value = true;
     }
 
@@ -636,6 +670,7 @@
     );
 
     watch(selectedAudio, (audio) => {
+        if (populating.value) return;
         if (audio) {
             fadeRange.value = [0, audio.duration];
         }
@@ -651,14 +686,14 @@
         if (!rpg && form.audioId === NO_AUDIO) form.audioId = '';
     });
 
-    const filledCount = computed(() => {
+    function isEntryFilled(e: Entry): boolean {
         if (isRpgPreset.value) {
-            return rpgEntries.value.filter(
-                (e) => e.phrase.trim() && e.choiceLeft.trim() && e.choiceRight.trim(),
-            ).length;
+            return !!(e.phrase.trim() && e.choiceLeft.trim() && e.choiceRight.trim());
         }
-        return phrases.value.filter((p) => p.trim()).length;
-    });
+        return !!e.phrase.trim();
+    }
+
+    const filledCount = computed(() => entries.value.filter(isEntryFilled).length);
 
     const assetCountByFolder = computed(() => {
         const counts: Record<string, number> = {};
@@ -700,7 +735,7 @@
     onMounted(async () => {
         breadcrumbsComposable.setBreadcrumbs([
             { label: 'Create', onClick: () => router.push('/create') },
-            { label: 'New' },
+            { label: 'New video session' },
         ]);
         await Promise.all([
             audioStore.fetchAll(),
@@ -711,7 +746,48 @@
             }),
         ]);
         dataLoaded.value = true;
+
+        const id = route.params.id as string | undefined;
+        if (id) await populateFromDraft(id);
+        ready.value = true;
     });
+
+    async function populateFromDraft(id: string) {
+        populating.value = true;
+        try {
+            const session =
+                sessionsStore.current?.id === id
+                    ? sessionsStore.current
+                    : await sessionsStore.fetchOne(id);
+            draftId.value = session.id;
+            form.presetId = session.presetId;
+            form.assetSource = session.assetSource ?? 'all';
+            autoAssign.value = session.autoAssign ?? false;
+            if (session.noAudio) {
+                form.audioId = NO_AUDIO;
+                noAudioSeconds.value = Math.round(session.durationMs / 1000) || 15;
+            } else {
+                form.audioId = session.audioId ?? '';
+            }
+            fadeRange.value = [
+                session.fadeInMs ?? 0,
+                session.durationMs - (session.fadeOutMs ?? 0),
+            ];
+            const vids = session.videos ?? [];
+            if (vids.length) {
+                entries.value = vids.map((v) => ({
+                    phrase: v.phrase,
+                    choiceLeft: v.choiceLeft ?? '',
+                    choiceRight: v.choiceRight ?? '',
+                    asset: v.asset ? (v.asset as unknown as Asset) : null,
+                    settings: v.settings ?? undefined,
+                }));
+            }
+        } finally {
+            await nextTick();
+            populating.value = false;
+        }
+    }
 
     async function generatePhrases() {
         if (!aiTheme.value.trim()) return;
@@ -721,9 +797,17 @@
                 theme: aiTheme.value,
                 count: aiCount.value,
             });
-            const existing = phrases.value.filter((p) => p.trim());
-            const merged = [...existing, ...res.data.phrases];
-            phrases.value = merged.length ? merged : [''];
+            const existing = entries.value.filter((e) => e.phrase.trim());
+            const generated: Entry[] = res.data.phrases.map((phrase) => ({
+                phrase,
+                choiceLeft: '',
+                choiceRight: '',
+                asset: null,
+            }));
+            const merged = [...existing, ...generated];
+            entries.value = merged.length
+                ? merged
+                : [{ phrase: '', choiceLeft: '', choiceRight: '', asset: null }];
         } catch {
             error.value = 'Failed to generate phrases';
         } finally {
@@ -731,9 +815,7 @@
         }
     }
 
-    async function addPhrase() {
-        phrases.value.push('');
-        await nextTick();
+    function scrollPhrasesToBottom() {
         let el: Element | null = phrasesListRef.value;
         while (el && el !== document.body) {
             const { overflowY } = window.getComputedStyle(el);
@@ -745,26 +827,18 @@
         }
     }
 
-    function removePhrase(i: number) {
-        phrases.value.splice(i, 1);
-    }
-
-    async function addRpgEntry() {
-        rpgEntries.value.push({ phrase: '', choiceLeft: '', choiceRight: '' });
+    async function addEntry() {
+        entries.value.push({ phrase: '', choiceLeft: '', choiceRight: '', asset: null });
+        if (step.value === 2) assignMissingAssets();
         await nextTick();
-        let el: Element | null = phrasesListRef.value;
-        while (el && el !== document.body) {
-            const { overflowY } = window.getComputedStyle(el);
-            if (overflowY === 'auto' || overflowY === 'scroll') {
-                el.scrollTop = el.scrollHeight;
-                return;
-            }
-            el = el.parentElement;
-        }
+        scrollPhrasesToBottom();
     }
 
-    function removeRpgEntry(i: number) {
-        rpgEntries.value.splice(i, 1);
+    function removeEntry(i: number) {
+        entries.value.splice(i, 1);
+        if (!entries.value.length) {
+            entries.value = [{ phrase: '', choiceLeft: '', choiceRight: '', asset: null }];
+        }
     }
 
     function shuffleArray<T>(arr: T[]): T[] {
@@ -776,58 +850,44 @@
         return result;
     }
 
-    function goToStep2() {
-        const available = shuffleArray(resolvedAssets.value);
-        if (isRpgPreset.value) {
-            const filled = rpgEntries.value.filter(
-                (e) => e.phrase.trim() && e.choiceLeft.trim() && e.choiceRight.trim(),
-            );
-            phraseItems.value = filled.map((entry, i) => ({
-                phrase: entry.phrase,
-                choiceLeft: entry.choiceLeft,
-                choiceRight: entry.choiceRight,
-                asset: available[i % available.length],
-            }));
-        } else {
-            const filled = phrases.value.filter((p) => p.trim());
-            phraseItems.value = filled.map((phrase, i) => ({
-                phrase,
-                asset: available[i % available.length],
-            }));
+    function assignMissingAssets() {
+        const usedIds = new Set(entries.value.map((e) => e.asset?.id).filter(Boolean) as string[]);
+        const pool = shuffleArray(resolvedAssets.value.filter((a) => !usedIds.has(a.id)));
+        let pi = 0;
+        for (const entry of entries.value) {
+            if (!entry.asset && pi < pool.length) {
+                entry.asset = pool[pi++];
+            }
         }
+    }
+
+    function goToStep2() {
+        entries.value = entries.value.filter(isEntryFilled);
+        if (!entries.value.length) {
+            entries.value = [{ phrase: '', choiceLeft: '', choiceRight: '', asset: null }];
+            return;
+        }
+        assignMissingAssets();
         step.value = 2;
     }
 
     function goBack() {
-        if (isRpgPreset.value) {
-            rpgEntries.value = phraseItems.value.map((item) => ({
-                phrase: item.phrase,
-                choiceLeft: item.choiceLeft ?? '',
-                choiceRight: item.choiceRight ?? '',
-            }));
-        } else {
-            phrases.value = phraseItems.value.map((item) => item.phrase);
-        }
         step.value = 1;
     }
 
     function openPicker(i: number) {
         pickerIndex.value = i;
-        pickerInitialAsset.value = phraseItems.value[i]?.asset ?? null;
-        pickerExcludeIds.value = phraseItems.value
+        pickerInitialAsset.value = entries.value[i]?.asset ?? null;
+        pickerExcludeIds.value = entries.value
             .filter((_, idx) => idx !== i)
-            .map((item) => item.asset?.id)
+            .map((e) => e.asset?.id)
             .filter(Boolean) as string[];
         pickerOpen.value = true;
     }
 
     function onPickerSelect(asset: Asset) {
-        if (phraseItems.value[pickerIndex.value]) {
-            phraseItems.value[pickerIndex.value] = {
-                ...phraseItems.value[pickerIndex.value],
-                asset,
-            };
-        }
+        const entry = entries.value[pickerIndex.value];
+        if (entry) entry.asset = asset;
     }
 
     function handlePrimary() {
@@ -846,53 +906,117 @@
         return `${minutes}:${String(seconds).padStart(2, '0')}`;
     }
 
+    function currentDurationMs(): number {
+        return noAudio.value
+            ? Math.round(noAudioSeconds.value * 1000)
+            : Math.round(selectedAudio.value?.duration ?? 0);
+    }
+
+    function buildDraftPayload() {
+        const durationMs = currentDurationMs();
+        return {
+            id: draftId.value ?? undefined,
+            audioId: noAudio.value ? undefined : form.audioId || undefined,
+            noAudio: noAudio.value,
+            assetIds: resolvedAssetIds.value,
+            assetSource: form.assetSource,
+            autoAssign: autoAssign.value,
+            durationMs,
+            fadeInMs: noAudio.value ? 0 : fadeRange.value[0],
+            fadeOutMs: noAudio.value ? 0 : durationMs - fadeRange.value[1],
+            presetId: form.presetId,
+            entries: entries.value
+                .filter((e) => e.phrase.trim())
+                .map((e) => ({
+                    phrase: e.phrase,
+                    choiceLeft: e.choiceLeft || null,
+                    choiceRight: e.choiceRight || null,
+                    assetId: autoAssign.value ? null : (e.asset?.id ?? null),
+                    settings: e.settings ?? null,
+                })),
+        };
+    }
+
+    function canAutoSave(): boolean {
+        return !!draftId.value && !!form.presetId;
+    }
+
+    let saveTimer: ReturnType<typeof setTimeout> | null = null;
+
+    function scheduleDraftSave() {
+        if (populating.value || submitting.value) return;
+        if (saveTimer) clearTimeout(saveTimer);
+        saveTimer = setTimeout(flushDraftSave, 800);
+    }
+
+    async function flushDraftSave() {
+        if (saveTimer) {
+            clearTimeout(saveTimer);
+            saveTimer = null;
+        }
+        if (populating.value || submitting.value || !canAutoSave()) return;
+        try {
+            await sessionsStore.saveDraft(buildDraftPayload());
+        } catch {
+            // autosave failures are non-blocking
+        }
+    }
+
+    watch(
+        [
+            () => form.audioId,
+            () => form.assetSource,
+            () => form.presetId,
+            fadeRange,
+            noAudioSeconds,
+            autoAssign,
+            entries,
+        ],
+        scheduleDraftSave,
+        { deep: true },
+    );
+
+    onBeforeUnmount(() => {
+        if (saveTimer) clearTimeout(saveTimer);
+    });
+
+    function buildPhrasePayload() {
+        return entries.value.filter(isEntryFilled).map((e) => ({
+            phrase: e.phrase,
+            choiceLeft: isRpgPreset.value ? e.choiceLeft : null,
+            choiceRight: isRpgPreset.value ? e.choiceRight : null,
+            assetId: autoAssign.value ? null : (e.asset?.id ?? null),
+            settings: e.settings ?? null,
+        }));
+    }
+
     async function submit() {
+        if (!canSubmit.value) return;
         error.value = '';
         submitting.value = true;
+        if (saveTimer) {
+            clearTimeout(saveTimer);
+            saveTimer = null;
+        }
         try {
-            const audio = selectedAudio.value;
-            const durationMs = noAudio.value
-                ? Math.round(noAudioSeconds.value * 1000)
-                : Math.round(audio?.duration ?? 0);
-            const session = await sessionsStore.create({
-                audioId: noAudio.value ? undefined : form.audioId,
-                noAudio: noAudio.value,
-                assetIds: resolvedAssetIds.value,
-                durationMs,
-                fadeInMs: noAudio.value ? 0 : fadeRange.value[0],
-                fadeOutMs: noAudio.value ? 0 : durationMs - fadeRange.value[1],
-                presetId: form.presetId,
-            });
-
-            let phrasePayload: {
-                phrase: string;
-                choiceLeft?: string | null;
-                choiceRight?: string | null;
-                assetId?: string | null;
-                settings?: RpgSettings | null;
-            }[];
-            if (step.value === 2) {
-                phrasePayload = phraseItems.value.map((item) => ({
-                    phrase: item.phrase,
-                    choiceLeft: item.choiceLeft ?? null,
-                    choiceRight: item.choiceRight ?? null,
-                    assetId: item.asset?.id ?? null,
-                    settings: item.settings ?? null,
-                }));
-            } else if (isRpgPreset.value) {
-                phrasePayload = rpgEntries.value
-                    .filter((e) => e.phrase.trim() && e.choiceLeft.trim() && e.choiceRight.trim())
-                    .map((e) => ({
-                        phrase: e.phrase,
-                        choiceLeft: e.choiceLeft,
-                        choiceRight: e.choiceRight,
-                    }));
+            const phrasePayload = buildPhrasePayload();
+            if (draftId.value) {
+                await sessionsStore.saveDraft(buildDraftPayload());
+                await sessionsStore.generate(draftId.value, phrasePayload);
             } else {
-                phrasePayload = phrases.value.filter((p) => p.trim()).map((p) => ({ phrase: p }));
+                const durationMs = currentDurationMs();
+                const session = await sessionsStore.create({
+                    audioId: noAudio.value ? undefined : form.audioId,
+                    noAudio: noAudio.value,
+                    assetIds: resolvedAssetIds.value,
+                    durationMs,
+                    fadeInMs: noAudio.value ? 0 : fadeRange.value[0],
+                    fadeOutMs: noAudio.value ? 0 : durationMs - fadeRange.value[1],
+                    presetId: form.presetId,
+                });
+                await sessionsStore.generate(session.id, phrasePayload);
+                router.push(`/create/${session.id}`);
             }
-
-            await sessionsStore.generate(session.id, phrasePayload);
-            router.push(`/create/${session.id}`);
         } catch (e: unknown) {
             error.value =
                 (e as { response?: { data?: { error?: string } } })?.response?.data?.error ??

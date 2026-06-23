@@ -148,7 +148,7 @@
                 <div class="flex items-center justify-end gap-2 pt-1">
                     <Button size="sm" variant="ghost" @click="onCancel"> Cancel </Button>
                     <Button :disabled="!canSubmit" size="sm" @click="submit">
-                        <Loader2 v-if="submitting" class="size-3.5 mr-1.5 animate-spin" />
+                        <Loader2 v-if="submitting" class="size-3.5 mr-1 animate-spin" />
                         {{ editTarget ? 'Save' : 'Upload' }}
                     </Button>
                 </div>

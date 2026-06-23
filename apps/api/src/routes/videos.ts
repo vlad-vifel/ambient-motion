@@ -43,7 +43,7 @@ router.get('/presets', (_req, res: Response) => {
 router.get('/', async (req: AuthRequest, res: Response) => {
     try {
         const videos = await prisma.video.findMany({
-            where: { userId: req.userId! },
+            where: { userId: req.userId!, status: { not: 'DRAFT' } },
             orderBy: { createdAt: 'desc' },
             include: {
                 session: { select: { id: true, name: true } },

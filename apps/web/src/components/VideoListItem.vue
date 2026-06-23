@@ -1,8 +1,10 @@
 <template>
     <div
         class="group flex items-center gap-3 px-4 py-3 rounded-lg border border-transparent bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer"
-        @click="$emit('click')"
+        :class="selected && 'bg-muted/50 border-border'"
+        @click="selectable ? $emit('toggle-select') : $emit('click')"
     >
+        <Checkbox v-if="selectable" :model-value="selected" class="pointer-events-none shrink-0" />
         <div
             class="relative size-9 rounded-md bg-muted shrink-0 overflow-hidden flex items-center justify-center"
         >
@@ -28,7 +30,7 @@
         </span>
 
         <div
-            v-if="video.status !== 'QUEUED' && video.status !== 'GENERATING'"
+            v-if="!selectable && video.status !== 'QUEUED' && video.status !== 'GENERATING'"
             class="hidden sm:group-hover:flex items-center gap-0.5 shrink-0"
         >
             <button
@@ -58,7 +60,7 @@
             </button>
         </div>
 
-        <DropdownMenu>
+        <DropdownMenu v-if="!selectable">
             <DropdownMenuTrigger as-child class="sm:hidden" @click.stop>
                 <button
                     class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
@@ -109,15 +111,26 @@
         DropdownMenuSeparator,
         DropdownMenuTrigger,
     } from '@/components/ui/dropdown-menu';
+    import { Checkbox } from '@/components/ui/checkbox';
+    import { downloadVideoFile } from '@/lib/utils';
 
-    const props = defineProps<{
-        video: Video;
-    }>();
+    const props = withDefaults(
+        defineProps<{
+            video: Video;
+            selectable?: boolean;
+            selected?: boolean;
+        }>(),
+        {
+            selectable: false,
+            selected: false,
+        },
+    );
 
     defineEmits<{
-        click: [];
-        delete: [];
-        edit: [];
+        'click': [];
+        'delete': [];
+        'edit': [];
+        'toggle-select': [];
     }>();
 
     function statusClass(status: string) {
@@ -141,19 +154,6 @@
     }
 
     async function downloadVideo() {
-        const apiBase = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${apiBase}/api/videos/${props.video.id}/download`, {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${props.video.phrase}.mp4`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+        await downloadVideoFile(props.video.id, props.video.phrase);
     }
 </script>

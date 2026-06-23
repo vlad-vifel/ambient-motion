@@ -1,12 +1,15 @@
 <template>
     <Dialog :open="open" @update:open="(v) => emit('update:open', v)">
-        <DialogContent class="max-w-2xl p-0 gap-0 overflow-hidden" :no-max-width="true">
+        <DialogContent
+            class="max-w-2xl p-0 gap-0 overflow-hidden grid grid-rows-[auto_1fr_auto] max-h-dvh"
+            :no-max-width="true"
+        >
             <DialogHeader class="px-6 pt-6 pb-4">
                 <DialogTitle>Settings</DialogTitle>
                 <DialogDescription class="sr-only">RPG dialogue render settings</DialogDescription>
             </DialogHeader>
 
-            <div class="px-6 pb-4 flex flex-col sm:flex-row gap-6">
+            <div class="px-6 pb-4 flex flex-col sm:flex-row gap-6 overflow-y-auto min-h-0">
                 <div class="flex justify-center shrink-0">
                     <RpgPreviewCanvas
                         :image-url="imageUrl"
@@ -14,7 +17,7 @@
                         :choice-left="choiceLeft"
                         :choice-right="choiceRight"
                         :settings="draft"
-                        :width="260"
+                        :width="previewWidth"
                     />
                 </div>
 
@@ -168,7 +171,8 @@
 
 <script setup lang="ts">
     import { RotateCcw } from 'lucide-vue-next';
-    import { reactive, watch } from 'vue';
+    import { computed, reactive, watch } from 'vue';
+    import { useWindowSize } from '@vueuse/core';
     import RpgPreviewCanvas from '@/components/RpgPreviewCanvas.vue';
     import { Button } from '@/components/ui/button';
     import { Checkbox } from '@/components/ui/checkbox';
@@ -201,6 +205,9 @@
         (e: 'update:open', v: boolean): void;
         (e: 'apply', settings: RpgSettings): void;
     }>();
+
+    const { width: windowWidth } = useWindowSize();
+    const previewWidth = computed(() => (windowWidth.value < 640 ? 180 : 260));
 
     const draft = reactive<RpgSettings>({ ...DEFAULT_RPG_SETTINGS });
 

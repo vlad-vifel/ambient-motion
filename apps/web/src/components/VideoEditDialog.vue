@@ -65,14 +65,14 @@
                         :disabled="!selectedAsset"
                         @click="settingsOpen = true"
                     >
-                        <SlidersHorizontal class="size-3.5 mr-1.5" />
+                        <SlidersHorizontal class="size-3.5 mr-1" />
                         Settings
                     </Button>
                     <span v-else />
                     <div class="flex items-center gap-2">
                         <Button size="sm" variant="ghost" @click="onCancel">Cancel</Button>
                         <Button :disabled="!canSubmit" size="sm" @click="submit">
-                            <Loader2 v-if="submitting" class="size-3.5 mr-1.5 animate-spin" />
+                            <Loader2 v-if="submitting" class="size-3.5 mr-1 animate-spin" />
                             Recreate video
                         </Button>
                     </div>

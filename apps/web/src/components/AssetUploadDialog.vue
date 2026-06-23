@@ -79,7 +79,7 @@
                         size="sm"
                         @click="submit"
                     >
-                        <Loader2 v-if="uploading" class="size-3.5 mr-1.5 animate-spin" />
+                        <Loader2 v-if="uploading" class="size-3.5 mr-1 animate-spin" />
                         Upload{{ selectedFiles.length ? ` (${selectedFiles.length})` : '' }}
                     </Button>
                 </div>

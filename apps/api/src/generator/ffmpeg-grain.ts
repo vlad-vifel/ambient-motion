@@ -5,6 +5,17 @@ import ffmpegStatic from 'ffmpeg-static';
 
 const execAsync = promisify(exec);
 
+export async function cropCenterSquare(
+    inputPath: string,
+    outputPath: string,
+    size: number,
+): Promise<void> {
+    const ffmpeg = ffmpegStatic || 'ffmpeg';
+    await execAsync(`"${ffmpeg}" -y -i "${inputPath}" -vf "crop=${size}:${size}" "${outputPath}"`, {
+        maxBuffer: 50 * 1024 * 1024,
+    });
+}
+
 export async function applyGrainFilter(inputPath: string, outputPath: string): Promise<void> {
     const tmpPath = `${outputPath}.tmp.mp4`;
     const ffmpeg = ffmpegStatic || 'ffmpeg';

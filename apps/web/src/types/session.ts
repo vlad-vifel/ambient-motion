@@ -13,6 +13,11 @@ export interface GenerationSession {
     name: string | null;
     index: number;
     durationMs: number;
+    fadeInMs?: number;
+    fadeOutMs?: number;
+    isDraft: boolean;
+    assetSource?: string | null;
+    autoAssign?: boolean;
     audioId: string | null;
     audio?: Audio | null;
     noAudio: boolean;

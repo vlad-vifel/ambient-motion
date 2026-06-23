@@ -22,7 +22,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
                     take: 4,
                 },
                 preset: { select: { id: true, name: true, component: true, format: true } },
-                _count: { select: { videos: true } },
+                _count: { select: { videos: { where: { status: { not: 'DRAFT' } } } } },
             },
         });
 
@@ -30,7 +30,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
             sessions.map(async (s) => {
                 const counts = await prisma.video.groupBy({
                     by: ['status'],
-                    where: { sessionId: s.id },
+                    where: { sessionId: s.id, status: { not: 'DRAFT' } },
                     _count: true,
                 });
                 return { sessionId: s.id, counts };
@@ -122,6 +122,166 @@ router.post('/', async (req: AuthRequest, res: Response) => {
         });
 
         res.status(201).json(session);
+    } catch {
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+router.post('/draft', async (req: AuthRequest, res: Response) => {
+    try {
+        const {
+            id,
+            name,
+            audioId,
+            noAudio,
+            assetIds,
+            assetSource,
+            autoAssign,
+            durationMs,
+            fadeInMs,
+            fadeOutMs,
+            presetId,
+            entries,
+        } = req.body as {
+            id?: string;
+            name?: string;
+            audioId?: string;
+            noAudio?: boolean;
+            assetIds?: string[];
+            assetSource?: string;
+            autoAssign?: boolean;
+            durationMs: number;
+            fadeInMs?: number;
+            fadeOutMs?: number;
+            presetId: string;
+            entries?: {
+                phrase: string;
+                choiceLeft?: string | null;
+                choiceRight?: string | null;
+                assetId?: string | null;
+                settings?: unknown;
+            }[];
+        };
+
+        if (!presetId || durationMs == null) {
+            res.status(400).json({ error: 'presetId and durationMs are required' });
+            return;
+        }
+
+        const ids = assetIds ?? [];
+        if (ids.length) {
+            const owned = await prisma.asset.count({
+                where: { id: { in: ids }, userId: req.userId! },
+            });
+            if (owned !== ids.length) {
+                res.status(400).json({ error: 'One or more assets not found' });
+                return;
+            }
+        }
+
+        if (!noAudio && audioId) {
+            const audio = await prisma.audio.findFirst({
+                where: { id: audioId, userId: req.userId! },
+            });
+            if (!audio) {
+                res.status(404).json({ error: 'Audio not found' });
+                return;
+            }
+        }
+
+        const phraseEntries = entries ?? [];
+        const validEntryAssetIds = new Set(ids);
+        const draftVideosData = phraseEntries.map((e) => ({
+            title: e.phrase,
+            phrase: e.phrase,
+            choiceLeft: e.choiceLeft ?? null,
+            choiceRight: e.choiceRight ?? null,
+            settings: (e.settings ?? undefined) as Prisma.InputJsonValue | undefined,
+            status: 'DRAFT' as const,
+            presetId,
+            assetId: e.assetId && validEntryAssetIds.has(e.assetId) ? e.assetId : null,
+            sourceImageUrl: '',
+            audioId: noAudio ? null : (audioId ?? null),
+            noAudio: noAudio ?? false,
+            sourceAudioUrl: '',
+            durationMs,
+            fadeInMs: fadeInMs ?? 0,
+            fadeOutMs: fadeOutMs ?? 0,
+            userId: req.userId!,
+        }));
+
+        const sessionData = {
+            name: name ?? null,
+            durationMs,
+            fadeInMs: fadeInMs ?? 0,
+            fadeOutMs: fadeOutMs ?? 0,
+            assetSource: assetSource ?? null,
+            autoAssign: autoAssign ?? false,
+            audioId: noAudio ? null : (audioId ?? null),
+            noAudio: noAudio ?? false,
+            presetId,
+        };
+
+        let sessionId = id;
+
+        if (sessionId) {
+            const existing = await prisma.generationSession.findFirst({
+                where: { id: sessionId, userId: req.userId!, isDraft: true },
+            });
+            if (!existing) {
+                res.status(404).json({ error: 'Draft not found' });
+                return;
+            }
+            await prisma.$transaction([
+                prisma.generationSession.update({
+                    where: { id: sessionId },
+                    data: sessionData,
+                }),
+                prisma.sessionAsset.deleteMany({ where: { sessionId } }),
+                ...(ids.length
+                    ? [
+                          prisma.sessionAsset.createMany({
+                              data: ids.map((assetId) => ({ sessionId: sessionId!, assetId })),
+                          }),
+                      ]
+                    : []),
+                prisma.video.deleteMany({ where: { sessionId, status: 'DRAFT' } }),
+                ...(draftVideosData.length
+                    ? [
+                          prisma.video.createMany({
+                              data: draftVideosData.map((v) => ({ ...v, sessionId: sessionId! })),
+                          }),
+                      ]
+                    : []),
+            ]);
+        } else {
+            const sessionCount = await prisma.generationSession.count({
+                where: { userId: req.userId! },
+            });
+            const created = await prisma.generationSession.create({
+                data: {
+                    ...sessionData,
+                    index: sessionCount,
+                    isDraft: true,
+                    userId: req.userId!,
+                    assets: { create: ids.map((assetId) => ({ assetId })) },
+                    videos: { create: draftVideosData },
+                },
+            });
+            sessionId = created.id;
+        }
+
+        const session = await prisma.generationSession.findFirst({
+            where: { id: sessionId },
+            include: {
+                audio: {
+                    select: { id: true, title: true, artist: true, coverUrl: true, duration: true },
+                },
+                preset: { select: { id: true, name: true, component: true, format: true } },
+            },
+        });
+
+        res.status(id ? 200 : 201).json(session);
     } catch {
         res.status(500).json({ error: 'Internal server error' });
     }
@@ -257,6 +417,14 @@ router.post('/:id/generate', async (req: AuthRequest, res: Response) => {
         if (!session.assets.length) {
             res.status(400).json({ error: 'Session has no assets' });
             return;
+        }
+
+        await prisma.video.deleteMany({ where: { sessionId: session.id, status: 'DRAFT' } });
+        if (session.isDraft) {
+            await prisma.generationSession.update({
+                where: { id: session.id },
+                data: { isDraft: false },
+            });
         }
 
         const sourceAudioUrl = session.audio

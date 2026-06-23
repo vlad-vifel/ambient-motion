@@ -1,6 +1,6 @@
 import type { RpgSettings } from './rpgSettings';
 
-export type VideoStatus = 'QUEUED' | 'GENERATING' | 'COMPLETED' | 'FAILED';
+export type VideoStatus = 'DRAFT' | 'QUEUED' | 'GENERATING' | 'COMPLETED' | 'FAILED';
 
 export interface Video {
     id: string;

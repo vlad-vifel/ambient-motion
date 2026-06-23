@@ -15,7 +15,7 @@
     const props = withDefaults(defineProps<Props>(), {
         as: 'button',
         variant: 'default',
-        size: 'default',
+        size: 'sm',
     });
 
     const { as, asChild, variant, size, class: customClass } = props;

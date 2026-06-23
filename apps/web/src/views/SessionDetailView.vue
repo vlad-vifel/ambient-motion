@@ -51,7 +51,7 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center justify-end gap-2">
                 <Badge
                     v-if="session.preset"
                     variant="secondary"
@@ -62,17 +62,49 @@
                     >
                     <component :is="formatIcons[session.preset.format]" class="size-3" />
                 </Badge>
-                <Button
-                    v-if="session.videos?.length"
-                    size="sm"
-                    variant="outline"
-                    :disabled="downloading || !completedVideos.length"
-                    @click="downloadAll"
-                >
-                    <Loader2 v-if="downloading" class="size-4 animate-spin" />
-                    <Download v-else class="size-4" />
-                    Download all
-                </Button>
+                <template v-if="selectionIntent">
+                    <Button size="sm" variant="ghost" @click="toggleSelectAll">
+                        {{ allSelected ? 'Deselect all' : 'Select all' }}
+                    </Button>
+                    <Button
+                        v-if="selectionIntent === 'download'"
+                        size="sm"
+                        variant="outline"
+                        :disabled="downloading || !selectedIds.length"
+                        @click="downloadSelected"
+                    >
+                        <Loader2 v-if="downloading" class="size-3.5 mr-1 animate-spin" />
+                        <Download v-else class="size-3.5 mr-1" />
+                        Download{{ selectedIds.length ? ` (${selectedIds.length})` : '' }}
+                    </Button>
+                    <Button
+                        v-else
+                        size="sm"
+                        variant="outline"
+                        class="text-destructive hover:text-destructive"
+                        :disabled="!selectedIds.length"
+                        @click="bulkDeleteOpen = true"
+                    >
+                        <Trash2 class="size-3.5 mr-1" />
+                        Delete{{ selectedIds.length ? ` (${selectedIds.length})` : '' }}
+                    </Button>
+                    <Button size="sm" variant="ghost" @click="exitSelection">Cancel</Button>
+                </template>
+                <template v-else-if="completedVideos.length">
+                    <Button size="sm" variant="outline" @click="startSelection('download')">
+                        <Download class="size-3.5 mr-1" />
+                        Download
+                    </Button>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        class="text-destructive hover:text-destructive"
+                        @click="startSelection('delete')"
+                    >
+                        <Trash2 class="size-3.5 mr-1" />
+                        Delete
+                    </Button>
+                </template>
             </div>
         </div>
 
@@ -89,7 +121,10 @@
                 v-for="video in sortedVideos"
                 :key="video.id"
                 :video="video"
+                :selectable="!!selectionIntent && video.status === 'COMPLETED'"
+                :selected="selectedIds.includes(video.id)"
                 @click="openVideo(video)"
+                @toggle-select="toggleSelect(video.id)"
                 @delete="startDelete(video.id)"
                 @edit="openEditDialog(video)"
             />
@@ -134,13 +169,37 @@
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>
+
+    <AlertDialog v-model:open="bulkDeleteOpen">
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>
+                    Delete {{ selectedIds.length }}
+                    {{ selectedIds.length === 1 ? 'video' : 'videos' }}?
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                    This will permanently delete the selected videos and their files.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                    class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    @click="doBulkDelete"
+                >
+                    Delete
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
 </template>
 
 <script setup lang="ts">
     import { computed, onMounted, onUnmounted, ref } from 'vue';
     import { useRoute, useRouter } from 'vue-router';
     import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
-    import { Download, Film, Loader2, Music, VolumeX } from 'lucide-vue-next';
+    import { Download, Film, Loader2, Music, Trash2, VolumeX } from 'lucide-vue-next';
+    import { downloadVideoFile } from '@/lib/utils';
     import { Badge } from '@/components/ui/badge';
     import { formatIcons, formatLabels } from '@/lib/presetFormat';
     import {
@@ -179,11 +238,13 @@
 
     const sortedVideos = computed(() => {
         if (!session.value?.videos) return [];
-        return [...session.value.videos].sort((a, b) => {
-            const od = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
-            if (od !== 0) return od;
-            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        });
+        return [...session.value.videos]
+            .filter((v) => v.status !== 'DRAFT')
+            .sort((a, b) => {
+                const od = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
+                if (od !== 0) return od;
+                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            });
     });
 
     const completedVideos = computed(
@@ -196,6 +257,65 @@
     const activeVideo = ref<Video | null>(null);
     const editVideo = ref<Video | null>(null);
     const deleteVideoId = ref('');
+
+    const selectionIntent = ref<'download' | 'delete' | null>(null);
+    const selectedIds = ref<string[]>([]);
+    const bulkDeleteOpen = ref(false);
+
+    const allSelected = computed(
+        () =>
+            completedVideos.value.length > 0 &&
+            selectedIds.value.length === completedVideos.value.length,
+    );
+
+    function startSelection(intent: 'download' | 'delete') {
+        selectionIntent.value = intent;
+        selectedIds.value = [];
+    }
+
+    function exitSelection() {
+        selectionIntent.value = null;
+        selectedIds.value = [];
+    }
+
+    function toggleSelect(id: string) {
+        const idx = selectedIds.value.indexOf(id);
+        if (idx === -1) selectedIds.value.push(id);
+        else selectedIds.value.splice(idx, 1);
+    }
+
+    function toggleSelectAll() {
+        if (allSelected.value) selectedIds.value = [];
+        else selectedIds.value = completedVideos.value.map((v) => v.id);
+    }
+
+    async function downloadSelected() {
+        if (downloading.value) return;
+        const targets = completedVideos.value.filter((v) => selectedIds.value.includes(v.id));
+        if (!targets.length) return;
+        downloading.value = true;
+        try {
+            for (const video of targets) {
+                await downloadVideoFile(video.id, video.phrase);
+                await new Promise((r) => setTimeout(r, 300));
+            }
+        } finally {
+            downloading.value = false;
+            exitSelection();
+        }
+    }
+
+    async function doBulkDelete() {
+        const ids = [...selectedIds.value];
+        bulkDeleteOpen.value = false;
+        await Promise.allSettled(ids.map((id) => videosStore.remove(id)));
+        if (sessionsStore.current) {
+            sessionsStore.current.videos = sessionsStore.current.videos.filter(
+                (v) => !ids.includes(v.id),
+            );
+        }
+        exitSelection();
+    }
 
     onMounted(async () => {
         const cached = sessionsStore.items.find((s) => s.id === route.params.id);
@@ -244,31 +364,5 @@
             );
         }
         deleteVideoOpen.value = false;
-    }
-
-    async function downloadAll() {
-        if (downloading.value || !completedVideos.value.length) return;
-        downloading.value = true;
-        try {
-            const apiBase = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
-            const token = localStorage.getItem('token');
-            for (const video of completedVideos.value) {
-                const response = await fetch(`${apiBase}/api/videos/${video.id}/download`, {
-                    headers: token ? { Authorization: `Bearer ${token}` } : {},
-                });
-                const blob = await response.blob();
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = `${video.phrase}.mp4`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-                await new Promise((r) => setTimeout(r, 300));
-            }
-        } finally {
-            downloading.value = false;
-        }
     }
 </script>

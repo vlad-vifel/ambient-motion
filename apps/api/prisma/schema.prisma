@@ -75,6 +75,9 @@ model GenerationSession {
   durationMs  Int
   fadeInMs    Int      @default(0)
   fadeOutMs   Int      @default(0)
+  isDraft     Boolean  @default(false)
+  assetSource String?
+  autoAssign  Boolean  @default(false)
   createdAt   DateTime @default(now())
 
   audioId String?
@@ -147,6 +150,7 @@ model Video {
 }
 
 enum VideoStatus {
+  DRAFT
   QUEUED
   GENERATING
   COMPLETED

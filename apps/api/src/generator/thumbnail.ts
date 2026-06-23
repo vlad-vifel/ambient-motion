@@ -1,5 +1,9 @@
+import fs from 'node:fs/promises';
 import { renderStill, selectComposition } from '@remotion/renderer';
 import { getBundle } from './bundle';
+import { cropCenterSquare } from './ffmpeg-grain';
+
+const THUMBNAIL_SIZE = 240;
 
 interface RenderThumbnailParams {
     presetId: string;
@@ -56,13 +60,17 @@ export async function renderThumbnail(params: RenderThumbnailParams): Promise<vo
     console.log(`[Thumbnail] Composition selected - ${composition.width}x${composition.height}`);
 
     const middleFrame = Math.floor((composition.fps * durationMs) / 2000);
+    const scale = THUMBNAIL_SIZE / Math.min(composition.width, composition.height);
+    const stillWidth = Math.round(composition.width * scale);
+    const stillHeight = Math.round(composition.height * scale);
+    const fullPath = `${outputPath}.full.jpg`;
     console.log(
-        `[Thumbnail] Starting renderStill at frame ${middleFrame} (middle of ${durationMs}ms)...`,
+        `[Thumbnail] Starting renderStill at frame ${middleFrame} (middle of ${durationMs}ms), ${stillWidth}x${stillHeight}...`,
     );
     await renderStill({
         serveUrl,
-        composition: { ...composition, width: 240, height: 240 },
-        output: outputPath,
+        composition: { ...composition, width: stillWidth, height: stillHeight },
+        output: fullPath,
         inputProps,
         frame: middleFrame,
         imageFormat: 'jpeg',
@@ -72,5 +80,8 @@ export async function renderThumbnail(params: RenderThumbnailParams): Promise<vo
             gl: (process.env.REMOTION_GL as any) || 'angle',
         },
     });
-    console.log(`[Thumbnail] renderStill completed, output: ${outputPath}`);
+    console.log(`[Thumbnail] renderStill completed, cropping center square...`);
+    await cropCenterSquare(fullPath, outputPath, THUMBNAIL_SIZE);
+    await fs.rm(fullPath, { force: true });
+    console.log(`[Thumbnail] thumbnail ready, output: ${outputPath}`);
 }

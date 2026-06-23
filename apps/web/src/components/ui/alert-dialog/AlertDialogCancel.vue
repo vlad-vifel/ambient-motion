@@ -17,7 +17,7 @@
         >(),
         {
             variant: 'outline' as ButtonVariants['variant'],
-            size: 'default' as ButtonVariants['size'],
+            size: 'sm' as ButtonVariants['size'],
             class: undefined,
         },
     );

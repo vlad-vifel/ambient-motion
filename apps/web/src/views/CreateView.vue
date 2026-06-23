@@ -24,8 +24,9 @@
                         </SelectItem>
                     </SelectContent>
                 </Select>
-                <Button size="sm" @click="$router.push('/create/new')">
-                    <Plus class="size-4" />
+                <Button size="sm" :disabled="creating" @click="createNew">
+                    <Loader2 v-if="creating" class="size-3.5 mr-1 animate-spin" />
+                    <Plus v-else class="size-3.5 mr-1" />
                     Create videos
                 </Button>
             </div>
@@ -51,7 +52,7 @@
                 v-for="session in filteredSessions"
                 :key="session.id"
                 class="group flex items-center gap-3 px-4 py-3 rounded-lg border border-transparent bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer"
-                @click="$router.push(`/create/${session.id}`)"
+                @click="openSession(session)"
             >
                 <div
                     class="relative size-9 rounded-md bg-muted shrink-0 overflow-hidden flex items-center justify-center"
@@ -66,9 +67,18 @@
                 </div>
 
                 <div class="flex-1 min-w-0 flex flex-col">
-                    <p class="text-sm font-medium truncate">
-                        {{ sessionLabel(session) }}
-                    </p>
+                    <div class="flex items-center gap-2 min-w-0">
+                        <p class="text-sm font-medium truncate">
+                            {{ sessionLabel(session) }}
+                        </p>
+                        <Badge
+                            v-if="session.isDraft"
+                            variant="outline"
+                            class="shrink-0 text-[10px] px-1.5 py-0 text-amber-500 border-amber-500/40"
+                        >
+                            Draft
+                        </Badge>
+                    </div>
                     <span
                         v-if="session.audio || session.noAudio"
                         class="flex text-xs text-muted-foreground truncate"
@@ -115,7 +125,7 @@
                             class="text-destructive focus:text-destructive"
                             @click="startDelete(session.id)"
                         >
-                            <Trash2 class="size-4" />
+                            <Trash2 class="size-3.5" />
                             Delete
                         </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -133,9 +143,10 @@
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogCancel @click="deleteOpen = false">No</AlertDialogCancel>
+                <AlertDialogCancel size="sm" @click="deleteOpen = false">No</AlertDialogCancel>
                 <AlertDialogAction
                     class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    size="sm"
                     @click="submitDelete"
                 >
                     Yes
@@ -146,8 +157,17 @@
 </template>
 
 <script setup lang="ts">
-    import { Clapperboard, MoreVertical, Music, Plus, Trash2, VolumeX } from 'lucide-vue-next';
+    import {
+        Clapperboard,
+        Loader2,
+        MoreVertical,
+        Music,
+        Plus,
+        Trash2,
+        VolumeX,
+    } from 'lucide-vue-next';
     import { computed, onMounted, ref } from 'vue';
+    import { useRouter } from 'vue-router';
     import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
     import {
         AlertDialog,
@@ -176,14 +196,18 @@
     import { Badge } from '@/components/ui/badge';
     import { formatIcons, formatLabels } from '@/lib/presetFormat';
     import { useSessionsStore } from '@/stores/sessions';
+    import { usePresetsStore } from '@/stores/presets';
     import type { GenerationSession } from '@/types/session';
 
     const sessionsStore = useSessionsStore();
+    const presetsStore = usePresetsStore();
     const breadcrumbsComposable = useBreadcrumbs();
+    const router = useRouter();
 
     const filterPresetId = ref('all');
     const deleteOpen = ref(false);
     const deleteSessionId = ref('');
+    const creating = ref(false);
 
     const availablePresets = computed(() => {
         const seen = new Map<string, { id: string; name: string }>();
@@ -201,13 +225,41 @@
     });
 
     onMounted(async () => {
-        await sessionsStore.fetchAll();
+        await Promise.all([sessionsStore.fetchAll(), presetsStore.fetchAll()]);
         breadcrumbsComposable.setBreadcrumbs([{ label: 'Create' }]);
     });
 
     function sessionLabel(session: GenerationSession): string {
         if (session.name) return session.name;
         return `Session #${session.index}`;
+    }
+
+    function openSession(session: GenerationSession) {
+        router.push(`/create/${session.id}`);
+    }
+
+    async function createNew() {
+        if (creating.value) return;
+        if (!presetsStore.items.length) await presetsStore.fetchAll();
+        const presetId = presetsStore.items[0]?.id;
+        if (!presetId) return;
+        creating.value = true;
+        try {
+            const draft = await sessionsStore.saveDraft({
+                presetId,
+                noAudio: false,
+                assetIds: [],
+                assetSource: 'all',
+                autoAssign: false,
+                durationMs: 0,
+                fadeInMs: 0,
+                fadeOutMs: 0,
+                entries: [],
+            });
+            router.push(`/create/${draft.id}`);
+        } finally {
+            creating.value = false;
+        }
     }
 
     function startDelete(id: string) {

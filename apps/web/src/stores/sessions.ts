@@ -42,6 +42,33 @@ export const useSessionsStore = defineStore('sessions', () => {
         return data;
     }
 
+    async function saveDraft(payload: {
+        id?: string;
+        name?: string;
+        audioId?: string;
+        noAudio?: boolean;
+        assetIds: string[];
+        assetSource?: string;
+        autoAssign?: boolean;
+        durationMs: number;
+        fadeInMs: number;
+        fadeOutMs: number;
+        presetId: string;
+        entries: {
+            phrase: string;
+            choiceLeft?: string | null;
+            choiceRight?: string | null;
+            assetId?: string | null;
+            settings?: RpgSettings | null;
+        }[];
+    }): Promise<GenerationSession> {
+        const { data } = await api.post<GenerationSession>('/api/sessions/draft', payload);
+        const idx = items.value.findIndex((s) => s.id === data.id);
+        if (idx !== -1) items.value[idx] = { ...items.value[idx], ...data };
+        else items.value.unshift(data);
+        return data;
+    }
+
     async function rename(id: string, name: string) {
         const { data } = await api.patch<GenerationSession>(`/api/sessions/${id}`, { name });
         const idx = items.value.findIndex((s) => s.id === id);
@@ -72,9 +99,15 @@ export const useSessionsStore = defineStore('sessions', () => {
         if (current.value?.id === id) {
             current.value = {
                 ...current.value,
-                videos: [...data.jobs, ...(current.value.videos ?? [])],
+                isDraft: false,
+                videos: [
+                    ...data.jobs,
+                    ...(current.value.videos ?? []).filter((v) => v.status !== 'DRAFT'),
+                ],
             };
         }
+        const idx = items.value.findIndex((s) => s.id === id);
+        if (idx !== -1) items.value[idx] = { ...items.value[idx], isDraft: false };
         return data.jobs;
     }
 
@@ -127,6 +160,7 @@ export const useSessionsStore = defineStore('sessions', () => {
         fetchAll,
         fetchOne,
         create,
+        saveDraft,
         rename,
         remove,
         generate,
