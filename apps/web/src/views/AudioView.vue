@@ -7,48 +7,26 @@
             </div>
             <div class="flex flex-wrap items-center justify-end gap-2">
                 <template v-if="selectionMode">
-                    <Button size="sm" variant="ghost" @click="toggleSelectAll">
-                        {{ allSelected ? 'Deselect all' : 'Select all' }}
-                    </Button>
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        class="text-destructive hover:text-destructive"
-                        :disabled="!selectedIds.length"
-                        @click="bulkDeleteOpen = true"
-                    >
-                        <Trash2 class="size-3.5 mr-1" />
-                        Delete{{ selectedIds.length ? ` (${selectedIds.length})` : '' }}
-                    </Button>
-                    <Button size="sm" variant="ghost" @click="exitSelection">Cancel</Button>
+                    <BulkSelectionActions
+                        :selected-count="selectedIds.length"
+                        :all-selected="allSelected"
+                        @toggle-all="toggleSelectAll"
+                        @delete="bulkDeleteOpen = true"
+                        @cancel="exitSelection"
+                    />
                 </template>
                 <template v-else>
-                    <div class="flex gap-1 p-0.5 rounded-md border border-border bg-muted/20">
-                        <button
-                            :class="[
-                                'p-1.5 rounded transition-colors',
-                                viewMode === 'list'
-                                    ? 'bg-background text-foreground'
-                                    : 'text-muted-foreground hover:text-foreground',
-                            ]"
-                            title="List view"
-                            @click="viewMode = 'list'"
-                        >
-                            <List class="size-4" />
-                        </button>
-                        <button
-                            :class="[
-                                'p-1.5 rounded transition-colors',
-                                viewMode === 'grid'
-                                    ? 'bg-background text-foreground'
-                                    : 'text-muted-foreground hover:text-foreground',
-                            ]"
-                            title="Grid view"
-                            @click="viewMode = 'grid'"
-                        >
-                            <Grid class="size-4" />
-                        </button>
-                    </div>
+                    <Select v-model="filterSourceType">
+                        <SelectTrigger class="h-8! w-36 text-sm">
+                            <SelectValue placeholder="All sources" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem :value="FilterValue.All">All sources</SelectItem>
+                            <SelectItem :value="AudioSourceType.Spotify">Spotify</SelectItem>
+                            <SelectItem :value="AudioSourceType.Upload">Uploaded</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <ViewModeToggle v-model="viewMode" />
                     <Button
                         v-if="audioStore.items.length"
                         size="sm"
@@ -82,200 +60,85 @@
             </div>
         </div>
 
-        <div v-else-if="viewMode === 'list'" class="flex flex-col gap-2">
-            <div
-                v-for="track in audioStore.items"
+        <div
+            v-else-if="filteredAudio.length"
+            :class="
+                viewMode === ViewMode.List
+                    ? 'flex flex-col gap-2'
+                    : 'grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4'
+            "
+        >
+            <AudioTrackItem
+                v-for="track in filteredAudio"
                 :key="track.id"
-                class="group flex items-center gap-3 px-4 py-3 rounded-lg border border-transparent bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer sm:cursor-auto"
-                :class="[
-                    selectionMode && 'cursor-pointer! border-border',
-                    selectedIds.includes(track.id) && 'bg-muted/50',
-                ]"
-                @click="selectionMode ? toggleSelect(track.id) : handleRowClick(track)"
-            >
-                <Checkbox
-                    v-if="selectionMode"
-                    :model-value="selectedIds.includes(track.id)"
-                    class="pointer-events-none shrink-0"
-                />
-                <button
-                    class="group/cover relative size-9 rounded-md bg-muted shrink-0 flex items-center justify-center overflow-hidden"
-                    @click.stop="selectionMode ? toggleSelect(track.id) : onPlay(track)"
-                >
-                    <img
-                        v-if="track.coverUrl"
-                        class="absolute inset-0 size-full object-cover"
-                        :src="track.coverUrl"
-                    />
-                    <Music
-                        v-else
-                        class="size-4 text-muted-foreground transition-all duration-150 sm:group-hover/cover:text-transparent"
-                    />
-                    <span
-                        class="hidden sm:flex absolute inset-0 items-center justify-center bg-black/30 rounded-md transition-opacity duration-150 opacity-0 group-hover/cover:opacity-100"
-                    >
-                        <Pause
-                            v-if="player.track?.id === track.id && player.playing"
-                            class="size-3.5 fill-white text-white"
-                        />
-                        <Play v-else class="size-3.5 fill-white text-white translate-x-px" />
-                    </span>
-                </button>
-
-                <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium truncate">
-                        {{ track.title }}
-                    </p>
-                    <p class="text-xs text-muted-foreground truncate">
-                        {{ track.artist || '—' }}
-                    </p>
-                </div>
-
-                <span class="text-xs text-muted-foreground shrink-0">{{
-                    formatDuration(track.duration)
-                }}</span>
-
-                <div
-                    v-if="!selectionMode"
-                    class="hidden sm:group-hover:flex items-center gap-1 shrink-0"
-                >
-                    <button
-                        class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                        title="Edit"
-                        @click.stop="openEdit(track)"
-                    >
-                        <Pencil class="size-3.5" />
-                    </button>
-                    <button
-                        class="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                        title="Delete"
-                        @click.stop="openDeleteDialog(track.id)"
-                    >
-                        <Trash2 class="size-3.5" />
-                    </button>
-                </div>
-                <DropdownMenu v-if="!selectionMode">
-                    <DropdownMenuTrigger as-child class="sm:hidden" @click.stop>
-                        <button
-                            class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
-                        >
-                            <MoreVertical class="size-4" />
-                        </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" @click.stop>
-                        <DropdownMenuItem @click="openEdit(track)">
-                            <Pencil class="size-3.5" />
-                            Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                            class="text-destructive focus:text-destructive"
-                            @click="openDeleteDialog(track.id)"
-                        >
-                            <Trash2 class="size-3.5" />
-                            Delete
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </div>
+                :track="track"
+                :view-mode="viewMode"
+                :selection-mode="selectionMode"
+                :selected="selectedIds.includes(track.id)"
+                :is-playing="player.track?.id === track.id && player.playing"
+                @select="toggleSelect(track.id)"
+                @activate="handleRowClick(track)"
+                @play="onPlay(track)"
+                @edit="openEdit(track)"
+                @delete="openDeleteDialog(track.id)"
+            />
+        </div>
+        <div
+            v-else-if="!audioStore.loading"
+            class="rounded-xl border border-border/50 bg-card p-12 text-center"
+        >
+            <p class="font-medium">No matching audio tracks</p>
+            <p class="mt-1 text-sm text-muted-foreground">Try another source filter.</p>
         </div>
 
-        <div v-else class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            <div
-                v-for="track in audioStore.items"
-                :key="track.id"
-                class="group flex flex-col gap-2 p-3 rounded-lg border border-transparent bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer sm:cursor-auto"
-                :class="
-                    selectionMode && selectedIds.includes(track.id) && 'bg-muted/50 border-border'
-                "
-                @click="selectionMode ? toggleSelect(track.id) : handleRowClick(track)"
-            >
-                <button
-                    class="group/cover relative w-full aspect-square rounded-md bg-muted flex items-center justify-center overflow-hidden"
-                    @click.stop="selectionMode ? toggleSelect(track.id) : onPlay(track)"
-                >
-                    <Checkbox
-                        v-if="selectionMode"
-                        :model-value="selectedIds.includes(track.id)"
-                        class="absolute top-2 left-2 z-10 pointer-events-none bg-background/80"
-                    />
-                    <img
-                        v-if="track.coverUrl"
-                        class="absolute inset-0 size-full object-cover"
-                        :src="track.coverUrl"
-                    />
-                    <Music
-                        v-else
-                        class="size-8 text-muted-foreground transition-all duration-150 sm:group-hover/cover:text-transparent"
-                    />
-                    <span
-                        class="hidden sm:flex absolute inset-0 items-center justify-center bg-black/30 rounded-md transition-opacity duration-150 opacity-0 group-hover/cover:opacity-100"
+        <Dialog :open="uploadChoiceOpen" @update:open="uploadChoiceOpen = $event">
+            <DialogContent class="max-w-xl" :show-close-button="false">
+                <DialogHeader>
+                    <DialogTitle>Upload audio</DialogTitle>
+                    <DialogDescription>Choose how you want to add your track.</DialogDescription>
+                </DialogHeader>
+                <div class="-mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <button
+                        class="group flex min-h-32 flex-col items-center justify-center gap-3 rounded-xl border border-border bg-muted/20 p-5 text-center transition-colors hover:border-primary/50 hover:bg-muted/50"
+                        @click="chooseUpload(AudioUploadMethod.File)"
                     >
-                        <Pause
-                            v-if="player.track?.id === track.id && player.playing"
-                            class="size-6 fill-white text-white"
-                        />
-                        <Play v-else class="size-6 fill-white text-white translate-x-px" />
-                    </span>
-                </button>
-
-                <div class="flex items-center justify-between gap-2 min-w-0">
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium truncate">
-                            {{ track.title }}
-                        </p>
-                        <p class="text-xs text-muted-foreground truncate">
-                            {{ track.artist || '—' }}
-                        </p>
-                    </div>
-
-                    <div
-                        v-if="!selectionMode"
-                        class="hidden sm:group-hover:flex items-center gap-0.5 shrink-0"
+                        <span
+                            class="flex size-11 items-center justify-center rounded-full bg-muted transition-colors group-hover:bg-primary/10"
+                        >
+                            <Upload
+                                class="size-5 text-muted-foreground transition-colors group-hover:text-primary"
+                            />
+                        </span>
+                        <span>
+                            <span class="block text-sm font-medium">Upload an audio file</span>
+                            <span class="mt-1 block text-xs text-muted-foreground"
+                            >Choose an MP3 from your device</span
+                            >
+                        </span>
+                    </button>
+                    <button
+                        class="group flex min-h-32 flex-col items-center justify-center gap-3 rounded-xl border border-border bg-muted/20 p-5 text-center transition-colors hover:border-primary/50 hover:bg-muted/50"
+                        @click="chooseUpload(AudioUploadMethod.Spotify)"
                     >
-                        <button
-                            class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                            title="Edit"
-                            @click.stop="openEdit(track)"
+                        <span
+                            class="flex size-11 items-center justify-center rounded-full bg-muted transition-colors group-hover:bg-primary/10"
                         >
-                            <Pencil class="size-3.5" />
-                        </button>
-                        <button
-                            class="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                            title="Delete"
-                            @click.stop="openDeleteDialog(track.id)"
-                        >
-                            <Trash2 class="size-3.5" />
-                        </button>
-                    </div>
-                    <DropdownMenu v-if="!selectionMode">
-                        <DropdownMenuTrigger as-child class="sm:hidden" @click.stop>
-                            <button
-                                class="p-1 rounded bg-muted text-foreground transition-colors shrink-0"
+                            <Link2
+                                class="size-5 text-muted-foreground transition-colors group-hover:text-primary"
+                            />
+                        </span>
+                        <span>
+                            <span class="block text-sm font-medium">Import from Spotify</span>
+                            <span class="mt-1 block text-xs text-muted-foreground"
+                            >Use a Spotify link and MP3</span
                             >
-                                <MoreVertical class="size-3.5" />
-                            </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" @click.stop>
-                            <DropdownMenuItem @click="openEdit(track)">
-                                <Pencil class="size-3.5" />
-                                Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                                class="text-destructive focus:text-destructive"
-                                @click="openDeleteDialog(track.id)"
-                            >
-                                <Trash2 class="size-3.5" />
-                                Delete
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                        </span>
+                    </button>
                 </div>
-            </div>
-        </div>
-
+            </DialogContent>
+        </Dialog>
         <AudioFormDialog v-model:open="dialogOpen" :edit-target="editTarget" />
+        <SpotifyImportDialog v-model:open="spotifyDialogOpen" />
 
         <AlertDialog :open="deleteDialogOpen" @update:open="deleteDialogOpen = $event">
             <AlertDialogContent>
@@ -324,21 +187,12 @@
 </template>
 
 <script setup lang="ts">
-    import {
-        Grid,
-        List,
-        MoreVertical,
-        Music,
-        Pause,
-        Pencil,
-        Play,
-        Trash2,
-        Upload,
-    } from 'lucide-vue-next';
+    import { Link2, Music, Trash2, Upload } from 'lucide-vue-next';
     import { computed, onMounted, ref } from 'vue';
-    import { Checkbox } from '@/components/ui/checkbox';
     import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
-    import AudioFormDialog from '@/components/AudioFormDialog.vue';
+    import AudioFormDialog from '@/components/audio/AudioFormDialog.vue';
+    import AudioTrackItem from '@/components/audio/AudioTrackItem.vue';
+    import SpotifyImportDialog from '@/components/audio/SpotifyImportDialog.vue';
     import {
         AlertDialog,
         AlertDialogAction,
@@ -349,24 +203,42 @@
         AlertDialogHeader,
         AlertDialogTitle,
     } from '@/components/ui/alert-dialog';
-    import {
-        DropdownMenu,
-        DropdownMenuContent,
-        DropdownMenuItem,
-        DropdownMenuSeparator,
-        DropdownMenuTrigger,
-    } from '@/components/ui/dropdown-menu';
     import { Button } from '@/components/ui/button';
+    import {
+        Dialog,
+        DialogContent,
+        DialogDescription,
+        DialogHeader,
+        DialogTitle,
+    } from '@/components/ui/dialog';
+    import {
+        Select,
+        SelectContent,
+        SelectItem,
+        SelectTrigger,
+        SelectValue,
+    } from '@/components/ui/select';
     import { type Audio, useAudioStore } from '@/stores/audio';
     import { usePlayerStore } from '@/stores/player';
+    import BulkSelectionActions from '@/components/shared/BulkSelectionActions.vue';
+    import ViewModeToggle from '@/components/shared/ViewModeToggle.vue';
+    import {
+        AudioSourceType,
+        AudioUploadMethod,
+        type AudioSourceType as AudioSourceTypeValue,
+    } from '@/types/audio';
+    import { FilterValue, ViewMode } from '@/types/ui';
 
     const audioStore = useAudioStore();
     const player = usePlayerStore();
     const breadcrumbsComposable = useBreadcrumbs();
 
     const dialogOpen = ref(false);
+    const uploadChoiceOpen = ref(false);
+    const spotifyDialogOpen = ref(false);
     const editTarget = ref<Audio | null>(null);
-    const viewMode = ref<'list' | 'grid'>('list');
+    const viewMode = ref<ViewMode>(ViewMode.List);
+    const filterSourceType = ref<AudioSourceTypeValue | typeof FilterValue.All>(FilterValue.All);
 
     const deleteDialogOpen = ref(false);
     const deleteTargetId = ref<string | null>(null);
@@ -375,8 +247,15 @@
     const selectedIds = ref<string[]>([]);
     const bulkDeleteOpen = ref(false);
 
+    const filteredAudio = computed(() =>
+        filterSourceType.value === FilterValue.All
+            ? audioStore.items
+            : audioStore.items.filter((track) => track.sourceType === filterSourceType.value),
+    );
     const allSelected = computed(
-        () => audioStore.items.length > 0 && selectedIds.value.length === audioStore.items.length,
+        () =>
+            filteredAudio.value.length > 0 &&
+            filteredAudio.value.every((track) => selectedIds.value.includes(track.id)),
     );
 
     function enterSelection() {
@@ -397,7 +276,7 @@
 
     function toggleSelectAll() {
         if (allSelected.value) selectedIds.value = [];
-        else selectedIds.value = audioStore.items.map((t) => t.id);
+        else selectedIds.value = filteredAudio.value.map((t) => t.id);
     }
 
     async function doBulkDelete() {
@@ -406,12 +285,6 @@
         await Promise.allSettled(ids.map((id) => audioStore.remove(id)));
         exitSelection();
     }
-
-    onMounted(async () => {
-        await audioStore.fetchAll();
-        player.setPlaylist(audioStore.items);
-        breadcrumbsComposable.setBreadcrumbs([{ label: 'Audio' }]);
-    });
 
     function onPlay(track: Audio) {
         if (player.track?.id === track.id) {
@@ -428,7 +301,13 @@
 
     function openUpload() {
         editTarget.value = null;
-        dialogOpen.value = true;
+        uploadChoiceOpen.value = true;
+    }
+
+    function chooseUpload(type: AudioUploadMethod) {
+        uploadChoiceOpen.value = false;
+        if (type === AudioUploadMethod.Spotify) spotifyDialogOpen.value = true;
+        else dialogOpen.value = true;
     }
 
     function openEdit(track: Audio) {
@@ -449,10 +328,9 @@
         deleteTargetId.value = null;
     }
 
-    function formatDuration(ms: number): string {
-        const totalSeconds = Math.round(ms / 1000);
-        const minutes = Math.floor(totalSeconds / 60);
-        const seconds = totalSeconds % 60;
-        return `${minutes}:${String(seconds).padStart(2, '0')}`;
-    }
+    onMounted(async () => {
+        await audioStore.fetchAll();
+        player.setPlaylist(audioStore.items);
+        breadcrumbsComposable.setBreadcrumbs([{ label: 'Audio' }]);
+    });
 </script>

@@ -128,13 +128,13 @@ Backend responsibilities:
 - file management
 - database CRUD
 - video generation queue
-- Backblaze B2 integration
-- AI text generation
-- FFmpeg video generation
+- Sufy S3 integration
+- AI text generation (Groq)
+- Remotion video generation (via GitHub Actions worker)
 
 Deploy backend to:
 
-- Vercel
+- Render.com (with UptimeRobot pinging every 5 min to prevent sleep)
 
 ---
 
@@ -142,7 +142,7 @@ Deploy backend to:
 
 Use:
 
-- Backblaze B2 (S3-compatible API)
+- Sufy (S3-compatible API)
 
 Store:
 
@@ -156,15 +156,15 @@ Database should store:
 - URLs
 - statuses
 
-Do NOT store files directly in SQLite.
+Do NOT store files directly in the database.
 
-Backblaze B2 is S3-compatible — use `@aws-sdk/client-s3` with custom endpoint.
+Sufy is S3-compatible — use `@aws-sdk/client-s3` with custom endpoint.
 
 ---
 
 ## DATABASE
 
-Use SQLite (via Prisma 6).
+Use PostgreSQL (via Prisma 6, hosted on Neon).
 
 Main tables:
 
@@ -533,6 +533,17 @@ Avoid:
 - readable code
 - TypeScript where possible
 
+### Component Architecture and TypeScript
+
+- Keep components focused. Split a large component when it owns distinct visual sections, independent state, or reusable behavior. A page should compose feature and shared components instead of containing long repeated markup.
+- Prefer an existing shared or feature component over copying a similar row, card, control, dialog section, or selection flow. When a pattern is used by multiple features, make it reusable through typed props, emits, and slots where appropriate.
+- Keep feature-specific components grouped by domain. Put a component's interfaces and type aliases in a `types.ts` file in the same directory when they are shared by that component group; use `src/types` only for cross-domain application types.
+- Put pure, reusable helpers in a `utils.ts` file in the same directory as the component group. Keep a helper local only when it is tiny and depends directly on the component's reactive state or props. Put reusable reactive behavior in a typed composable under `src/composables`.
+- Use strict TypeScript throughout: type props, emits, API payloads, refs, computed values, public function inputs and outputs. Prefer `unknown` with narrowing over `any`.
+- Do not duplicate string-literal unions. Model recurring UI states with typed `as const` value objects and derived union types; do not use regular TypeScript `enum` in Vue because `erasableSyntaxOnly` is enabled.
+- In Vue `<script setup>`, keep this order: imports and component contracts; reactive state and computed values; local functions; lifecycle hooks. Place watchers next to the state or computed values they coordinate.
+- Preserve behavior while refactoring. Validate affected frontend code with `vue-tsc` and a Vite build, and validate affected API code with TypeScript before considering the change complete.
+
 ### Code Comments
 
 **Do NOT write comments in code.** Use only when the WHY is non-obvious (hidden constraints, workarounds for specific bugs, subtle invariants). Well-named identifiers and functions should explain WHAT the code does.
@@ -565,6 +576,10 @@ Examples:
 - Multi-line messages (keep to one line)
 - Commit bodies unless absolutely necessary
 
+### Commit Timing
+
+**Never commit without explicit user instruction.** Wait until the user says to commit. Do not commit after completing a task, after a fix, or proactively for any reason.
+
 ---
 
 ## DEPLOYMENT
@@ -575,15 +590,24 @@ Frontend:
 
 Backend:
 
-- Vercel
+- Render.com (free tier, sleeps after 10 min inactivity)
+- UptimeRobot pings every 5 min to keep alive
 
 Storage:
 
-- Backblaze B2
+- Sufy (S3-compatible)
 
 Database:
 
-- PostgreSQL
+- Neon (PostgreSQL)
+
+Video Generation:
+
+- GitHub Actions (Remotion render worker)
+
+AI Text Generation:
+
+- Groq API
 
 ---
 

@@ -5,7 +5,9 @@
                 <Logo :size="40" class="text-foreground" />
                 <h1 class="text-2xl font-semibold tracking-tight">ambient motion</h1>
                 <p class="text-sm text-muted-foreground">
-                    {{ mode === 'login' ? 'Log in to your account' : 'Create a new account' }}
+                    {{
+                        mode === AuthMode.Login ? 'Log in to your account' : 'Create a new account'
+                    }}
                 </p>
             </div>
 
@@ -25,7 +27,7 @@
                     />
                 </div>
 
-                <div v-if="mode === 'register'" class="flex flex-col gap-1">
+                <div v-if="mode === AuthMode.Register" class="flex flex-col gap-1">
                     <label class="text-sm font-medium">Name</label>
                     <Input
                         v-model="name"
@@ -47,7 +49,7 @@
                     />
                 </div>
 
-                <div v-if="mode === 'register'" class="flex flex-col gap-1">
+                <div v-if="mode === AuthMode.Register" class="flex flex-col gap-1">
                     <label class="text-sm font-medium">Confirm Password</label>
                     <Input
                         v-model="passwordConfirm"
@@ -61,18 +63,18 @@
                 <Button class="w-full mt-2" :disabled="loading" @click="handleSubmit">
                     <span v-if="loading" class="flex items-center gap-2">
                         <Spinner class="size-4" />
-                        {{ mode === 'login' ? 'Logging in' : 'Creating account' }}
+                        {{ mode === AuthMode.Login ? 'Logging in' : 'Creating account' }}
                     </span>
-                    <span v-else>{{ mode === 'login' ? 'Log in' : 'Register' }}</span>
+                    <span v-else>{{ mode === AuthMode.Login ? 'Log in' : 'Register' }}</span>
                 </Button>
             </div>
 
             <p class="text-center text-sm text-muted-foreground">
-                <template v-if="mode === 'login'">
+                <template v-if="mode === AuthMode.Login">
                     Don't have an account?
                     <button
                         class="underline underline-offset-4 hover:text-foreground transition-colors font-medium"
-                        @click="switchMode('register')"
+                        @click="switchMode(AuthMode.Register)"
                     >
                         Register
                     </button>
@@ -81,7 +83,7 @@
                     Already have an account?
                     <button
                         class="underline underline-offset-4 hover:text-foreground transition-colors font-medium"
-                        @click="switchMode('login')"
+                        @click="switchMode(AuthMode.Login)"
                     >
                         Log in
                     </button>
@@ -100,12 +102,14 @@
     import { Alert, AlertTitle } from '@/components/ui/alert';
     import { Spinner } from '@/components/ui/spinner';
     import { useAuthStore } from '@/stores/auth';
-    import Logo from '@/components/Logo.vue';
+    import Logo from '@/components/layout/Logo.vue';
+    import { AuthMode } from '@/types/ui';
+    import { getAuthErrorMessage } from './utils';
 
     const router = useRouter();
     const auth = useAuthStore();
 
-    const mode = ref<'login' | 'register'>('login');
+    const mode = ref<AuthMode>(AuthMode.Login);
     const email = ref('');
     const name = ref('');
     const password = ref('');
@@ -115,46 +119,13 @@
 
     const API = (import.meta.env.VITE_API_URL as string) || 'http://localhost:3000';
 
-    function switchMode(newMode: 'login' | 'register') {
+    function switchMode(newMode: AuthMode) {
         mode.value = newMode;
         error.value = '';
         email.value = '';
         name.value = '';
         password.value = '';
         passwordConfirm.value = '';
-    }
-
-    function getErrorMessage(err: unknown): string {
-        if (!err || typeof err !== 'object') {
-            return 'Something went wrong. Please try again.';
-        }
-
-        if ('response' in err) {
-            const axiosErr = err as {
-                response?: { data?: { error?: string; message?: string } };
-                code?: string;
-            };
-            const msg = axiosErr.response?.data?.error || axiosErr.response?.data?.message;
-
-            if (msg) {
-                if (msg.toLowerCase().includes('email') && msg.toLowerCase().includes('already')) {
-                    return 'This email is already registered. Please log in or use a different email.';
-                }
-                if (
-                    msg.toLowerCase().includes('invalid') ||
-                    msg.toLowerCase().includes('incorrect')
-                ) {
-                    return 'Invalid email or password. Please try again.';
-                }
-                return msg;
-            }
-
-            if (axiosErr.code === 'ERR_NETWORK') {
-                return 'Cannot connect to server. Make sure the API is running.';
-            }
-        }
-
-        return 'Something went wrong. Please try again.';
     }
 
     async function handleSubmit() {
@@ -165,7 +136,7 @@
             return;
         }
 
-        if (mode.value === 'register') {
+        if (mode.value === AuthMode.Register) {
             if (!name.value.trim()) {
                 error.value = 'Please enter your name.';
                 return;
@@ -191,9 +162,10 @@
 
         loading.value = true;
         try {
-            const endpoint = mode.value === 'login' ? '/api/auth/login' : '/api/auth/register';
+            const endpoint =
+                mode.value === AuthMode.Login ? '/api/auth/login' : '/api/auth/register';
             const payload =
-                mode.value === 'login'
+                mode.value === AuthMode.Login
                     ? { email: email.value.trim(), password: password.value }
                     : {
                           email: email.value.trim(),
@@ -206,7 +178,7 @@
             auth.setAuth(data.token, data.user);
             await router.push('/');
         } catch (err: unknown) {
-            error.value = getErrorMessage(err);
+            error.value = getAuthErrorMessage(err);
         } finally {
             loading.value = false;
         }

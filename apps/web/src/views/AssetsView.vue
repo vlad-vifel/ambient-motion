@@ -8,48 +8,16 @@
 
             <div class="flex flex-wrap items-center justify-end gap-2">
                 <template v-if="selectionMode">
-                    <Button size="sm" variant="ghost" @click="toggleSelectAll">
-                        {{ allSelected ? 'Deselect all' : 'Select all' }}
-                    </Button>
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        class="text-destructive hover:text-destructive"
-                        :disabled="!selectedIds.length"
-                        @click="bulkDeleteOpen = true"
-                    >
-                        <Trash2 class="size-3.5 mr-1" />
-                        Delete{{ selectedIds.length ? ` (${selectedIds.length})` : '' }}
-                    </Button>
-                    <Button size="sm" variant="ghost" @click="exitSelection">Cancel</Button>
+                    <BulkSelectionActions
+                        :selected-count="selectedIds.length"
+                        :all-selected="allSelected"
+                        @toggle-all="toggleSelectAll"
+                        @delete="bulkDeleteOpen = true"
+                        @cancel="exitSelection"
+                    />
                 </template>
                 <template v-else>
-                    <div class="flex gap-1 p-0.5 rounded-md border border-border bg-muted/20">
-                        <button
-                            :class="[
-                                'p-1.5 rounded transition-colors',
-                                viewMode === 'list'
-                                    ? 'bg-background text-foreground'
-                                    : 'text-muted-foreground hover:text-foreground',
-                            ]"
-                            title="List view"
-                            @click="viewMode = 'list'"
-                        >
-                            <List class="size-4" />
-                        </button>
-                        <button
-                            :class="[
-                                'p-1.5 rounded transition-colors',
-                                viewMode === 'grid'
-                                    ? 'bg-background text-foreground'
-                                    : 'text-muted-foreground hover:text-foreground',
-                            ]"
-                            title="Grid view"
-                            @click="viewMode = 'grid'"
-                        >
-                            <Grid class="size-4" />
-                        </button>
-                    </div>
+                    <ViewModeToggle v-model="viewMode" />
 
                     <Button
                         v-if="assetsStore.items.length"
@@ -108,253 +76,35 @@
             </div>
         </div>
 
-        <div v-else-if="viewMode === 'list'" class="flex flex-col gap-2">
-            <div
+        <div
+            :class="
+                viewMode === ViewMode.List
+                    ? 'flex flex-col gap-2'
+                    : 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+            "
+        >
+            <AssetFolderItem
                 v-for="folder in visibleFolders"
                 :key="folder.id"
-                class="group flex items-center gap-3 px-4 py-3 rounded-lg border border-transparent bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer"
-                @click="selectionMode ? undefined : enterFolder(folder)"
-            >
-                <div
-                    class="size-9 rounded-md bg-muted/60 shrink-0 flex items-center justify-center"
-                >
-                    <Folder class="size-4 text-muted-foreground" />
-                </div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium truncate">{{ folder.name }}</p>
-                </div>
-                <div class="hidden sm:group-hover:flex items-center gap-1 shrink-0">
-                    <button
-                        class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                        title="Rename"
-                        @click.stop="openFolderForm(folder)"
-                    >
-                        <Pencil class="size-3.5" />
-                    </button>
-                    <button
-                        class="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                        title="Delete"
-                        @click.stop="openDeleteFolderDialog(folder.id)"
-                    >
-                        <Trash2 class="size-3.5" />
-                    </button>
-                </div>
-                <DropdownMenu>
-                    <DropdownMenuTrigger as-child class="sm:hidden" @click.stop>
-                        <button
-                            class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
-                        >
-                            <MoreVertical class="size-4" />
-                        </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" @click.stop>
-                        <DropdownMenuItem @click="openFolderForm(folder)">
-                            <Pencil class="size-3.5" />
-                            Rename
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                            class="text-destructive focus:text-destructive"
-                            @click="openDeleteFolderDialog(folder.id)"
-                        >
-                            <Trash2 class="size-3.5" />
-                            Delete
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </div>
-
-            <div
+                :folder="folder"
+                :view-mode="viewMode"
+                :selection-mode="selectionMode"
+                @open="enterFolder(folder)"
+                @rename="openFolderForm(folder)"
+                @delete="openDeleteFolderDialog(folder.id)"
+            />
+            <AssetItem
                 v-for="asset in assetsStore.items"
                 :key="asset.id"
-                class="group flex items-center gap-3 px-4 py-3 rounded-lg border border-transparent bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer"
-                :class="
-                    selectionMode && selectedIds.includes(asset.id) && 'bg-muted/50 border-border'
-                "
-                @click="selectionMode ? toggleSelect(asset.id) : openLightbox(asset)"
-            >
-                <Checkbox
-                    v-if="selectionMode"
-                    :model-value="selectedIds.includes(asset.id)"
-                    class="pointer-events-none shrink-0"
-                />
-                <div class="size-9 rounded-md bg-muted shrink-0 overflow-hidden">
-                    <img :src="asset.url" class="size-full object-cover" />
-                </div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium truncate">{{ asset.filename }}</p>
-                </div>
-                <div class="flex items-center gap-2 shrink-0">
-                    <Badge v-if="asset.isUsed" variant="secondary" class="text-xs"> used </Badge>
-                    <span class="text-xs text-muted-foreground">{{ formatSize(asset.size) }}</span>
-                </div>
-                <div
-                    v-if="!selectionMode"
-                    class="hidden sm:group-hover:flex items-center gap-1 shrink-0"
-                >
-                    <button
-                        class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                        title="Rename"
-                        @click.stop="openAssetEdit(asset)"
-                    >
-                        <Pencil class="size-3.5" />
-                    </button>
-                    <button
-                        class="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                        title="Delete"
-                        @click.stop="openDeleteAssetDialog(asset.id)"
-                    >
-                        <Trash2 class="size-3.5" />
-                    </button>
-                </div>
-                <DropdownMenu v-if="!selectionMode">
-                    <DropdownMenuTrigger as-child class="sm:hidden" @click.stop>
-                        <button
-                            class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
-                        >
-                            <MoreVertical class="size-4" />
-                        </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" @click.stop>
-                        <DropdownMenuItem @click="openAssetEdit(asset)">
-                            <Pencil class="size-3.5" />
-                            Rename
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                            class="text-destructive focus:text-destructive"
-                            @click="openDeleteAssetDialog(asset.id)"
-                        >
-                            <Trash2 class="size-3.5" />
-                            Delete
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </div>
-        </div>
-
-        <div v-else class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-            <div
-                v-for="folder in visibleFolders"
-                :key="folder.id"
-                class="group relative flex flex-col items-center justify-center aspect-square rounded-lg bg-muted/30 border border-border/50 hover:bg-muted/50 transition-colors cursor-pointer gap-2 p-3"
-                @click="selectionMode ? undefined : enterFolder(folder)"
-            >
-                <Folder class="size-8 text-muted-foreground" />
-                <p class="text-xs font-medium truncate w-full text-center">
-                    {{ folder.name }}
-                </p>
-                <div class="absolute top-2 right-2 hidden sm:group-hover:flex gap-0.5">
-                    <button
-                        class="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                        title="Rename"
-                        @click.stop="openFolderForm(folder)"
-                    >
-                        <Pencil class="size-3.5" />
-                    </button>
-                    <button
-                        class="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                        title="Delete"
-                        @click.stop="openDeleteFolderDialog(folder.id)"
-                    >
-                        <Trash2 class="size-3.5" />
-                    </button>
-                </div>
-                <div class="absolute top-2 right-2 sm:hidden" @click.stop>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger as-child @click.stop>
-                            <button class="p-1 rounded bg-muted text-foreground transition-colors">
-                                <MoreVertical class="size-3.5" />
-                            </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" @click.stop>
-                            <DropdownMenuItem @click="openFolderForm(folder)">
-                                <Pencil class="size-3.5" />
-                                Rename
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                                class="text-destructive focus:text-destructive"
-                                @click="openDeleteFolderDialog(folder.id)"
-                            >
-                                <Trash2 class="size-3.5" />
-                                Delete
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-            </div>
-
-            <div
-                v-for="asset in assetsStore.items"
-                :key="asset.id"
-                class="group relative aspect-square rounded-lg overflow-hidden bg-muted cursor-pointer"
-                :class="selectionMode && selectedIds.includes(asset.id) && 'ring-2 ring-primary'"
-                @click="selectionMode ? toggleSelect(asset.id) : openLightbox(asset)"
-            >
-                <img :src="asset.url" class="size-full object-cover bg-muted" />
-                <div v-if="selectionMode" class="absolute top-2 left-2 z-10">
-                    <Checkbox
-                        :model-value="selectedIds.includes(asset.id)"
-                        class="pointer-events-none bg-background/80"
-                    />
-                </div>
-                <div
-                    class="absolute inset-0 flex flex-col justify-end p-2 transition-opacity opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
-                    :style="{
-                        background: 'linear-gradient(to top, rgba(0, 0, 0, 0.75), transparent 35%)',
-                    }"
-                >
-                    <p class="text-white text-xs truncate leading-snug">
-                        {{ asset.filename }}
-                    </p>
-                </div>
-                <div v-if="asset.isUsed" class="absolute top-2 left-2 flex">
-                    <Badge variant="secondary" class="text-xs">used</Badge>
-                </div>
-                <div
-                    v-if="!selectionMode"
-                    class="absolute top-2 right-2 hidden sm:group-hover:flex gap-0.5"
-                >
-                    <button
-                        class="p-1.5 rounded group-hover:bg-muted/50 hover:bg-muted text-foreground transition-colors"
-                        title="Rename"
-                        @click.stop="openAssetEdit(asset)"
-                    >
-                        <Pencil class="size-3.5" />
-                    </button>
-                    <button
-                        class="p-1.5 rounded group-hover:bg-muted/50 hover:bg-muted group-hover:text-foreground hover:text-destructive transition-colors"
-                        title="Delete"
-                        @click.stop="openDeleteAssetDialog(asset.id)"
-                    >
-                        <Trash2 class="size-3.5" />
-                    </button>
-                </div>
-                <div v-if="!selectionMode" class="absolute top-2 right-2 sm:hidden" @click.stop>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger as-child @click.stop>
-                            <button class="p-1 rounded bg-muted text-foreground transition-colors">
-                                <MoreVertical class="size-3.5" />
-                            </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" @click.stop>
-                            <DropdownMenuItem @click="openAssetEdit(asset)">
-                                <Pencil class="size-3.5" />
-                                Rename
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                                class="text-destructive focus:text-destructive"
-                                @click="openDeleteAssetDialog(asset.id)"
-                            >
-                                <Trash2 class="size-3.5" />
-                                Delete
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-            </div>
+                :asset="asset"
+                :view-mode="viewMode"
+                :selection-mode="selectionMode"
+                :selected="selectedIds.includes(asset.id)"
+                @select="toggleSelect(asset.id)"
+                @preview="openLightbox(asset)"
+                @edit="openAssetEdit(asset)"
+                @delete="openDeleteAssetDialog(asset.id)"
+            />
         </div>
 
         <AssetUploadDialog
@@ -433,24 +183,15 @@
 </template>
 
 <script setup lang="ts">
-    import {
-        Folder,
-        FolderOpen,
-        FolderPlus,
-        Grid,
-        ImageIcon,
-        List,
-        MoreVertical,
-        Pencil,
-        Trash2,
-        Upload,
-    } from 'lucide-vue-next';
+    import { FolderOpen, FolderPlus, ImageIcon, Trash2, Upload } from 'lucide-vue-next';
     import { computed, onMounted, ref, watch } from 'vue';
     import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
-    import AssetEditDialog from '@/components/AssetEditDialog.vue';
-    import AssetLightbox from '@/components/AssetLightbox.vue';
-    import AssetUploadDialog from '@/components/AssetUploadDialog.vue';
-    import FolderFormDialog from '@/components/FolderFormDialog.vue';
+    import AssetEditDialog from '@/components/assets/AssetEditDialog.vue';
+    import AssetFolderItem from '@/components/assets/AssetFolderItem.vue';
+    import AssetItem from '@/components/assets/AssetItem.vue';
+    import AssetLightbox from '@/components/assets/AssetLightbox.vue';
+    import AssetUploadDialog from '@/components/assets/AssetUploadDialog.vue';
+    import FolderFormDialog from '@/components/folders/FolderFormDialog.vue';
     import {
         AlertDialog,
         AlertDialogAction,
@@ -461,24 +202,18 @@
         AlertDialogHeader,
         AlertDialogTitle,
     } from '@/components/ui/alert-dialog';
-    import {
-        DropdownMenu,
-        DropdownMenuContent,
-        DropdownMenuItem,
-        DropdownMenuSeparator,
-        DropdownMenuTrigger,
-    } from '@/components/ui/dropdown-menu';
-    import { Badge } from '@/components/ui/badge';
     import { Button } from '@/components/ui/button';
-    import { Checkbox } from '@/components/ui/checkbox';
+    import BulkSelectionActions from '@/components/shared/BulkSelectionActions.vue';
+    import ViewModeToggle from '@/components/shared/ViewModeToggle.vue';
     import { type Asset, useAssetsStore } from '@/stores/assets';
     import { type Folder as FolderType, useFoldersStore } from '@/stores/folders';
+    import { AssetTargetType, ViewMode } from '@/types/ui';
 
     const assetsStore = useAssetsStore();
     const foldersStore = useFoldersStore();
     const breadcrumbsComposable = useBreadcrumbs();
 
-    const viewMode = ref<'list' | 'grid'>('grid');
+    const viewMode = ref<ViewMode>(ViewMode.Grid);
     const currentFolder = ref<FolderType | null>(null);
 
     const uploadDialogOpen = ref(false);
@@ -491,7 +226,7 @@
     const lightboxIndex = ref(0);
 
     const deleteDialogOpen = ref(false);
-    const deleteTarget = ref<{ type: 'asset' | 'folder'; id: string } | null>(null);
+    const deleteTarget = ref<{ type: AssetTargetType; id: string } | null>(null);
     const initialLoading = ref(true);
 
     const selectionMode = ref(false);
@@ -534,26 +269,6 @@
 
     const isLoading = computed(() => assetsStore.loading || foldersStore.loading);
 
-    watch(currentFolder, () => {
-        if (currentFolder.value) {
-            breadcrumbsComposable.setBreadcrumbs([
-                { label: 'Assets', onClick: exitFolder },
-                { label: currentFolder.value.name },
-            ]);
-        } else {
-            breadcrumbsComposable.setBreadcrumbs([{ label: 'Assets' }]);
-        }
-    });
-
-    onMounted(async () => {
-        try {
-            await Promise.all([foldersStore.fetchAll(), assetsStore.fetchAll(null)]);
-        } finally {
-            initialLoading.value = false;
-        }
-        breadcrumbsComposable.setBreadcrumbs([{ label: 'Assets' }]);
-    });
-
     async function enterFolder(folder: FolderType) {
         exitSelection();
         currentFolder.value = folder;
@@ -584,12 +299,12 @@
     }
 
     function openDeleteFolderDialog(id: string) {
-        deleteTarget.value = { type: 'folder', id };
+        deleteTarget.value = { type: AssetTargetType.Folder, id };
         deleteDialogOpen.value = true;
     }
 
     function openDeleteAssetDialog(id: string) {
-        deleteTarget.value = { type: 'asset', id };
+        deleteTarget.value = { type: AssetTargetType.Asset, id };
         deleteDialogOpen.value = true;
     }
 
@@ -599,7 +314,7 @@
         deleteDialogOpen.value = false;
         deleteTarget.value = null;
         try {
-            if (target.type === 'folder') {
+            if (target.type === AssetTargetType.Folder) {
                 await foldersStore.remove(target.id);
             } else {
                 await assetsStore.remove(target.id);
@@ -609,9 +324,23 @@
         }
     }
 
-    function formatSize(bytes: number) {
-        return bytes < 1024 * 1024
-            ? `${(bytes / 1024).toFixed(0)} KB`
-            : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-    }
+    watch(currentFolder, () => {
+        if (currentFolder.value) {
+            breadcrumbsComposable.setBreadcrumbs([
+                { label: 'Assets', onClick: exitFolder },
+                { label: currentFolder.value.name },
+            ]);
+        } else {
+            breadcrumbsComposable.setBreadcrumbs([{ label: 'Assets' }]);
+        }
+    });
+
+    onMounted(async () => {
+        try {
+            await Promise.all([foldersStore.fetchAll(), assetsStore.fetchAll(null)]);
+        } finally {
+            initialLoading.value = false;
+        }
+        breadcrumbsComposable.setBreadcrumbs([{ label: 'Assets' }]);
+    });
 </script>

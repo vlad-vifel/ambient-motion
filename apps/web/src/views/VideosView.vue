@@ -9,35 +9,23 @@
             </div>
             <div class="flex flex-wrap items-center sm:justify-end gap-2">
                 <template v-if="selectionIntent">
-                    <Button size="sm" variant="ghost" @click="toggleSelectAll">
-                        {{ allSelected ? 'Deselect all' : 'Select all' }}
-                    </Button>
-                    <Button
-                        v-if="selectionIntent === 'download'"
-                        size="sm"
-                        variant="outline"
-                        :disabled="downloading || !selectedIds.length"
-                        @click="downloadSelected"
-                    >
-                        <Loader2 v-if="downloading" class="size-3.5 mr-1 animate-spin" />
-                        <Download v-else class="size-3.5 mr-1" />
-                        Download{{ selectedIds.length ? ` (${selectedIds.length})` : '' }}
-                    </Button>
-                    <Button
-                        v-else
-                        size="sm"
-                        variant="outline"
-                        class="text-destructive hover:text-destructive"
-                        :disabled="!selectedIds.length"
-                        @click="bulkDeleteOpen = true"
-                    >
-                        <Trash2 class="size-3.5 mr-1" />
-                        Delete{{ selectedIds.length ? ` (${selectedIds.length})` : '' }}
-                    </Button>
-                    <Button size="sm" variant="ghost" @click="exitSelection">Cancel</Button>
+                    <BulkSelectionActions
+                        :intent="selectionIntent"
+                        :selected-count="selectedIds.length"
+                        :all-selected="allSelected"
+                        :downloading="downloading"
+                        @toggle-all="toggleSelectAll"
+                        @download="downloadSelected"
+                        @delete="bulkDeleteOpen = true"
+                        @cancel="exitSelection"
+                    />
                 </template>
                 <template v-else-if="completedVideos.length">
-                    <Button size="sm" variant="outline" @click="startSelection('download')">
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        @click="startSelection(SelectionIntent.Download)"
+                    >
                         <Download class="size-3.5 mr-1" />
                         Download
                     </Button>
@@ -45,7 +33,7 @@
                         size="sm"
                         variant="outline"
                         class="text-destructive hover:text-destructive"
-                        @click="startSelection('delete')"
+                        @click="startSelection(SelectionIntent.Delete)"
                     >
                         <Trash2 class="size-3.5 mr-1" />
                         Delete
@@ -67,7 +55,7 @@
                         <SelectValue placeholder="All presets" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">All presets</SelectItem>
+                        <SelectItem :value="FilterValue.All">All presets</SelectItem>
                         <SelectItem
                             v-for="preset in presetsStore.items"
                             :key="preset.id"
@@ -82,8 +70,8 @@
                         <SelectValue placeholder="All audio" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">All audio</SelectItem>
-                        <SelectItem value="none">No audio</SelectItem>
+                        <SelectItem :value="FilterValue.All">All audio</SelectItem>
+                        <SelectItem :value="FilterValue.None">No audio</SelectItem>
                         <SelectItem
                             v-for="track in audioStore.items"
                             :key="track.id"
@@ -129,7 +117,7 @@
                 v-for="video in filteredVideos"
                 :key="video.id"
                 :video="video"
-                :selectable="!!selectionIntent && video.status === 'COMPLETED'"
+                :selectable="!!selectionIntent && video.status === VideoStatus.Completed"
                 :selected="selectedIds.includes(video.id)"
                 @click="openVideo(video)"
                 @toggle-select="toggleSelect(video.id)"
@@ -153,7 +141,7 @@
         <VideoLightbox
             :open="lightboxOpen"
             :items="
-                completedVideos.map((v) => ({ src: v.videoUrl!, phrase: v.phrase, videoId: v.id }))
+                completedVideos.map((v) => ({ src: v.videoUrl!, phrase: v.title, videoId: v.id }))
             "
             :initial-index="lightboxIndex"
             @update:open="lightboxOpen = $event"
@@ -207,7 +195,7 @@
 </template>
 
 <script setup lang="ts">
-    import { Download, Film, Loader2, Search, Trash2 } from 'lucide-vue-next';
+    import { Download, Film, Search, Trash2 } from 'lucide-vue-next';
     import { computed, onMounted, onUnmounted, ref } from 'vue';
     import { downloadVideoFile } from '@/lib/utils';
     import { Button } from '@/components/ui/button';
@@ -230,13 +218,16 @@
         SelectTrigger,
         SelectValue,
     } from '@/components/ui/select';
-    import VideoEditDialog from '@/components/VideoEditDialog.vue';
-    import VideoLightbox from '@/components/VideoLightbox.vue';
-    import VideoListItem from '@/components/VideoListItem.vue';
+    import VideoEditDialog from '@/components/videos/VideoEditDialog.vue';
+    import VideoLightbox from '@/components/videos/VideoLightbox.vue';
+    import VideoListItem from '@/components/videos/VideoListItem.vue';
+    import BulkSelectionActions from '@/components/shared/BulkSelectionActions.vue';
+    import { useVideoSelection } from '@/composables/useVideoSelection';
     import { useAudioStore } from '@/stores/audio';
     import { usePresetsStore } from '@/stores/presets';
     import { useVideosStore } from '@/stores/videos';
-    import type { Video } from '@/types/video';
+    import { VideoStatus, type Video } from '@/types/video';
+    import { FilterValue, SelectionIntent } from '@/types/ui';
 
     const videosStore = useVideosStore();
     const audioStore = useAudioStore();
@@ -244,14 +235,15 @@
     const breadcrumbsComposable = useBreadcrumbs();
 
     const searchQuery = ref('');
-    const filterAudioId = ref('all');
-    const filterPresetId = ref('all');
+    const filterAudioId = ref<string | FilterValue>(FilterValue.All);
+    const filterPresetId = ref<string | typeof FilterValue.All>(FilterValue.All);
 
-    const STATUS_ORDER: Record<string, number> = {
-        QUEUED: 0,
-        GENERATING: 1,
-        COMPLETED: 2,
-        FAILED: 2,
+    const STATUS_ORDER: Record<VideoStatus, number> = {
+        [VideoStatus.Draft]: 0,
+        [VideoStatus.Queued]: 0,
+        [VideoStatus.Generating]: 1,
+        [VideoStatus.Completed]: 2,
+        [VideoStatus.Failed]: 2,
     };
 
     const sortedVideos = computed(() =>
@@ -272,10 +264,12 @@
         return sortedVideos.value.filter((v) => {
             const matchesSearch = !query || v.phrase.toLowerCase().includes(query);
             const matchesAudio =
-                filterAudioId.value === 'all' ||
-                (filterAudioId.value === 'none' ? v.noAudio : v.audioId === filterAudioId.value);
+                filterAudioId.value === FilterValue.All ||
+                (filterAudioId.value === FilterValue.None
+                    ? v.noAudio
+                    : v.audioId === filterAudioId.value);
             const matchesPreset =
-                filterPresetId.value === 'all' || v.presetId === filterPresetId.value;
+                filterPresetId.value === FilterValue.All || v.presetId === filterPresetId.value;
             return matchesSearch && matchesAudio && matchesPreset;
         });
     });
@@ -289,68 +283,25 @@
     const editDialogOpen = ref(false);
     const editVideo = ref<Video | null>(null);
 
-    onMounted(() => {
-        videosStore.startPolling();
-        audioStore.fetchAll();
-        presetsStore.fetchAll();
-        breadcrumbsComposable.setBreadcrumbs([{ label: 'Videos' }]);
-    });
-
-    onUnmounted(() => {
-        videosStore.stopPolling();
-    });
-
     const completedVideos = computed(() =>
-        filteredVideos.value.filter((v) => v.status === 'COMPLETED' && v.videoUrl),
+        filteredVideos.value.filter((v) => v.status === VideoStatus.Completed && v.videoUrl),
     );
 
-    const downloading = ref(false);
-
-    const selectionIntent = ref<'download' | 'delete' | null>(null);
-    const selectedIds = ref<string[]>([]);
     const bulkDeleteOpen = ref(false);
-
-    const allSelected = computed(
-        () =>
-            completedVideos.value.length > 0 &&
-            selectedIds.value.length === completedVideos.value.length,
-    );
-
-    function startSelection(intent: 'download' | 'delete') {
-        selectionIntent.value = intent;
-        selectedIds.value = [];
-    }
-
-    function exitSelection() {
-        selectionIntent.value = null;
-        selectedIds.value = [];
-    }
-
-    function toggleSelect(id: string) {
-        const idx = selectedIds.value.indexOf(id);
-        if (idx === -1) selectedIds.value.push(id);
-        else selectedIds.value.splice(idx, 1);
-    }
-
-    function toggleSelectAll() {
-        if (allSelected.value) selectedIds.value = [];
-        else selectedIds.value = completedVideos.value.map((v) => v.id);
-    }
+    const {
+        allSelected,
+        downloadSelected: downloadSelectedVideos,
+        downloading,
+        exitSelection,
+        selectedIds,
+        selectionIntent,
+        startSelection,
+        toggleSelect,
+        toggleSelectAll,
+    } = useVideoSelection(completedVideos);
 
     async function downloadSelected() {
-        if (downloading.value) return;
-        const targets = completedVideos.value.filter((v) => selectedIds.value.includes(v.id));
-        if (!targets.length) return;
-        downloading.value = true;
-        try {
-            for (const video of targets) {
-                await downloadVideoFile(video.id, video.phrase);
-                await new Promise((r) => setTimeout(r, 300));
-            }
-        } finally {
-            downloading.value = false;
-            exitSelection();
-        }
+        await downloadSelectedVideos((video) => downloadVideoFile(video.id, video.title));
     }
 
     async function doBulkDelete() {
@@ -361,7 +312,7 @@
     }
 
     function openVideo(video: Video) {
-        if (video.status !== 'COMPLETED' || !video.videoUrl) return;
+        if (video.status !== VideoStatus.Completed || !video.videoUrl) return;
         lightboxIndex.value = completedVideos.value.findIndex((v) => v.id === video.id);
         lightboxOpen.value = true;
     }
@@ -383,4 +334,15 @@
         deleteDialogOpen.value = false;
         deleteTargetId.value = null;
     }
+
+    onMounted(() => {
+        videosStore.startPolling();
+        audioStore.fetchAll();
+        presetsStore.fetchAll();
+        breadcrumbsComposable.setBreadcrumbs([{ label: 'Videos' }]);
+    });
+
+    onUnmounted(() => {
+        videosStore.stopPolling();
+    });
 </script>

@@ -11,9 +11,12 @@ export async function cropCenterSquare(
     size: number,
 ): Promise<void> {
     const ffmpeg = ffmpegStatic || 'ffmpeg';
-    await execAsync(`"${ffmpeg}" -y -i "${inputPath}" -vf "crop=${size}:${size}" "${outputPath}"`, {
-        maxBuffer: 50 * 1024 * 1024,
-    });
+    await execAsync(
+        `"${ffmpeg}" -y -i "${inputPath}" -vf "crop=${size}:${size}:(iw-${size})/2:(ih-${size})/2" "${outputPath}"`,
+        {
+            maxBuffer: 50 * 1024 * 1024,
+        },
+    );
 }
 
 export async function applyGrainFilter(inputPath: string, outputPath: string): Promise<void> {

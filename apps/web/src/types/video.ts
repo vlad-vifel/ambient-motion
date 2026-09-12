@@ -1,6 +1,14 @@
-import type { RpgSettings } from './rpgSettings';
+import type { AudioSourceType } from './audio';
 
-export type VideoStatus = 'DRAFT' | 'QUEUED' | 'GENERATING' | 'COMPLETED' | 'FAILED';
+export const VideoStatus = {
+    Draft: 'DRAFT',
+    Queued: 'QUEUED',
+    Generating: 'GENERATING',
+    Completed: 'COMPLETED',
+    Failed: 'FAILED',
+} as const;
+
+export type VideoStatus = (typeof VideoStatus)[keyof typeof VideoStatus];
 
 export interface Video {
     id: string;
@@ -8,7 +16,7 @@ export interface Video {
     phrase: string;
     choiceLeft: string | null;
     choiceRight: string | null;
-    settings: RpgSettings | null;
+    settings: unknown | null;
     status: VideoStatus;
     videoUrl: string | null;
     thumbnailUrl: string | null;
@@ -20,16 +28,25 @@ export interface Video {
     assetId: string | null;
     asset?: { id: string; url: string; filename: string } | null;
     audioId: string | null;
+    audio?: {
+        id: string;
+        title: string;
+        artist: string;
+        coverUrl: string | null;
+        duration: number;
+        filename?: string;
+        url?: string | null;
+        sourceType: AudioSourceType;
+        sourceUrl: string | null;
+    } | null;
+    durationMs: number;
+    fadeInMs: number;
+    fadeOutMs: number;
+    audioStartMs: number;
+    audioFadeInMs: number;
+    audioFadeOutMs: number;
     noAudio: boolean;
     createdAt: string;
     startedAt: string | null;
     completedAt: string | null;
-}
-
-export interface VideoPreset {
-    id: string;
-    label: string;
-    width: number;
-    height: number;
-    fps: number;
 }

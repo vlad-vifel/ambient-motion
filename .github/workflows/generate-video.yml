@@ -2,12 +2,12 @@ name: Generate Videos
 
 on:
   repository_dispatch:
-    types: [generate-video, generate-video-batch]
+    types: [generate-video-batch]
 
 jobs:
   generate:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 360
 
     steps:
       - uses: actions/checkout@v4
@@ -31,31 +31,7 @@ jobs:
         run: npx prisma generate
         working-directory: apps/api
 
-      - name: Generate single video
-        if: github.event.action == 'generate-video'
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          SUFY_ACCESS_KEY: ${{ secrets.SUFY_ACCESS_KEY }}
-          SUFY_SECRET_KEY: ${{ secrets.SUFY_SECRET_KEY }}
-          SUFY_BUCKET_NAME: ${{ secrets.SUFY_BUCKET_NAME }}
-          SUFY_ORIGIN_DOMAIN: ${{ secrets.SUFY_ORIGIN_DOMAIN }}
-          SUFY_CDN_DOMAIN: ${{ secrets.SUFY_CDN_DOMAIN }}
-          SUFY_URL_SIGNING_KEY: ${{ secrets.SUFY_URL_SIGNING_KEY }}
-          REMOTION_GL: swiftshader
-          VIDEO_ID: ${{ github.event.client_payload.videoId }}
-          PHRASE: ${{ github.event.client_payload.phrase }}
-          PRESET_COMPONENT: ${{ github.event.client_payload.presetComponent }}
-          SOURCE_IMAGE_URL: ${{ github.event.client_payload.sourceImageUrl }}
-          SOURCE_AUDIO_URL: ${{ github.event.client_payload.sourceAudioUrl }}
-          DURATION_MS: ${{ github.event.client_payload.durationMs }}
-          FADE_IN_MS: ${{ github.event.client_payload.fadeInMs }}
-          FADE_OUT_MS: ${{ github.event.client_payload.fadeOutMs }}
-          USER_ID: ${{ github.event.client_payload.userId }}
-        run: npx ts-node -P tsconfig.json src/generator/run-job.ts
-        working-directory: apps/api
-
       - name: Generate video batch
-        if: github.event.action == 'generate-video-batch'
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           SUFY_ACCESS_KEY: ${{ secrets.SUFY_ACCESS_KEY }}

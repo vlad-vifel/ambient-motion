@@ -2,8 +2,7 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import api from '@/lib/api';
 import type { GenerationSession } from '@/types/session';
-import type { Video } from '@/types/video';
-import type { RpgSettings } from '@/types/rpgSettings';
+import { VideoStatus, type Video } from '@/types/video';
 
 export const useSessionsStore = defineStore('sessions', () => {
     const items = ref<GenerationSession[]>([]);
@@ -32,9 +31,9 @@ export const useSessionsStore = defineStore('sessions', () => {
         audioId?: string;
         noAudio?: boolean;
         assetIds: string[];
-        durationMs: number;
-        fadeInMs: number;
-        fadeOutMs: number;
+        durationMs: number | null;
+        fadeInMs: number | null;
+        fadeOutMs: number | null;
         presetId: string;
     }): Promise<GenerationSession> {
         const { data } = await api.post<GenerationSession>('/api/sessions', payload);
@@ -59,7 +58,12 @@ export const useSessionsStore = defineStore('sessions', () => {
             choiceLeft?: string | null;
             choiceRight?: string | null;
             assetId?: string | null;
-            settings?: RpgSettings | null;
+            settings?: unknown | null;
+            audioId?: string;
+            trimStartMs?: number;
+            trimEndMs?: number;
+            audioFadeInMs?: number;
+            audioFadeOutMs?: number;
         }[];
     }): Promise<GenerationSession> {
         const { data } = await api.post<GenerationSession>('/api/sessions/draft', payload);
@@ -90,7 +94,7 @@ export const useSessionsStore = defineStore('sessions', () => {
             choiceLeft?: string | null;
             choiceRight?: string | null;
             assetId?: string | null;
-            settings?: RpgSettings | null;
+            settings?: unknown | null;
         }[],
     ): Promise<Video[]> {
         const { data } = await api.post<{ jobs: Video[] }>(`/api/sessions/${id}/generate`, {
@@ -102,7 +106,7 @@ export const useSessionsStore = defineStore('sessions', () => {
                 isDraft: false,
                 videos: [
                     ...data.jobs,
-                    ...(current.value.videos ?? []).filter((v) => v.status !== 'DRAFT'),
+                    ...(current.value.videos ?? []).filter((v) => v.status !== VideoStatus.Draft),
                 ],
             };
         }
@@ -119,7 +123,7 @@ export const useSessionsStore = defineStore('sessions', () => {
 
     function hasActiveJobs(): boolean {
         return (current.value?.videos ?? []).some(
-            (v) => v.status === 'QUEUED' || v.status === 'GENERATING',
+            (v) => v.status === VideoStatus.Queued || v.status === VideoStatus.Generating,
         );
     }
 
@@ -137,7 +141,6 @@ export const useSessionsStore = defineStore('sessions', () => {
                 }
             } catch (err) {
                 console.error('[Sessions] Polling failed:', err);
-                // Continue polling even on error, but with increased backoff
                 if (hasActiveJobs()) {
                     pollTimer = setTimeout(tick, intervalMs * 2);
                 }

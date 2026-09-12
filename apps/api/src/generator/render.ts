@@ -1,19 +1,7 @@
-import { renderMedia, selectComposition } from '@remotion/renderer';
+import { renderMedia, selectComposition, type CancelSignal } from '@remotion/renderer';
 import { getBundle } from './bundle';
-
-interface RenderVideoParams {
-    presetId: string;
-    imageUrl: string;
-    audioUrl: string;
-    phrase: string;
-    durationMs: number;
-    fadeInMs: number;
-    fadeOutMs: number;
-    choiceLeft?: string;
-    choiceRight?: string;
-    settings?: unknown;
-    outputPath: string;
-}
+import { getChromiumOptions } from './remotion-options';
+import type { RenderParams } from './render-types';
 
 async function verifyAssetUrl(url: string, type: string): Promise<void> {
     const controller = new AbortController();
@@ -33,7 +21,10 @@ async function verifyAssetUrl(url: string, type: string): Promise<void> {
     }
 }
 
-export async function renderVideo(params: RenderVideoParams): Promise<void> {
+export async function renderVideo(
+    params: RenderParams,
+    cancelSignal?: CancelSignal,
+): Promise<void> {
     const {
         presetId,
         imageUrl,
@@ -45,6 +36,12 @@ export async function renderVideo(params: RenderVideoParams): Promise<void> {
         choiceLeft,
         choiceRight,
         settings,
+        title,
+        artist,
+        fullAudioDurationMs,
+        audioStartMs,
+        audioFadeInMs,
+        audioFadeOutMs,
         outputPath,
     } = params;
 
@@ -62,10 +59,16 @@ export async function renderVideo(params: RenderVideoParams): Promise<void> {
         choiceLeft,
         choiceRight,
         settings,
+        title,
+        artist,
+        fullAudioDurationMs,
+        audioStartMs,
+        audioFadeInMs,
+        audioFadeOutMs,
     };
 
     await verifyAssetUrl(imageUrl, 'image');
-    await verifyAssetUrl(audioUrl, 'audio');
+    if (audioUrl) await verifyAssetUrl(audioUrl, 'audio');
 
     console.log(`[Render] Selecting composition ${presetId}...`);
     const composition = await selectComposition({
@@ -90,9 +93,8 @@ export async function renderVideo(params: RenderVideoParams): Promise<void> {
             concurrency: 1,
             crf: 23,
             browserExecutable: process.env.CHROME_EXECUTABLE || undefined,
-            chromiumOptions: {
-                gl: (process.env.REMOTION_GL as any) || 'angle',
-            },
+            chromiumOptions: getChromiumOptions(),
+            cancelSignal,
             timeoutInMilliseconds: 600000,
             verbose: false,
         });

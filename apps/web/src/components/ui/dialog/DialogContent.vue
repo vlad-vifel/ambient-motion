@@ -6,13 +6,15 @@
             :class="
                 cn(
                     'bg-popover text-popover-foreground data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 ring-foreground/10 grid max-w-[calc(100%-2rem)] gap-6 rounded-xl p-6 text-sm ring-1 duration-100 fixed top-1/2 left-1/2 z-50 w-full -translate-x-1/2 -translate-y-1/2 outline-none',
-                    !props.noMaxWidth && 'sm:max-w-md',
+                    !props.noMaxWidth && !props.fullscreen && 'sm:max-w-md',
+                    props.fullscreen &&
+                        'h-dvh w-dvw max-w-none! grid-rows-[auto_1fr_auto] gap-0 rounded-none p-0',
                     props.class,
                 )
             "
             data-slot="dialog-content"
-            @interact-outside="(e: any) => handleInteractOutside(e)"
-            @pointer-down-outside="(e: any) => handlePointerDownOutside(e)"
+            @interact-outside="handleInteractOutside"
+            @pointer-down-outside="handlePointerDownOutside"
         >
             <slot />
 
@@ -47,6 +49,7 @@
                 showCloseButton?: boolean;
                 disableOutsideClose?: boolean;
                 noMaxWidth?: boolean;
+                fullscreen?: boolean;
             }
         >(),
         {
@@ -54,29 +57,34 @@
             showCloseButton: true,
             disableOutsideClose: true,
             noMaxWidth: false,
+            fullscreen: false,
         },
     );
-    const emits = defineEmits<
-        DialogContentEmits & { interactOutside: [e: Event]; pointerDownOutside: [e: Event] }
-    >();
+    const emits = defineEmits<DialogContentEmits>();
 
-    const delegatedProps = reactiveOmit(props, 'class', 'disableOutsideClose', 'noMaxWidth');
+    const delegatedProps = reactiveOmit(
+        props,
+        'class',
+        'disableOutsideClose',
+        'noMaxWidth',
+        'fullscreen',
+    );
 
     const forwarded = useForwardPropsEmits(delegatedProps, emits);
 
-    function handleInteractOutside(e: Event) {
+    function handleInteractOutside(e: DialogContentEmits['interactOutside'][0]) {
         if (props.disableOutsideClose) {
             e.preventDefault();
             return;
         }
-        (emits as any)('interactOutside', e);
+        emits('interactOutside', e);
     }
 
-    function handlePointerDownOutside(e: Event) {
+    function handlePointerDownOutside(e: DialogContentEmits['pointerDownOutside'][0]) {
         if (props.disableOutsideClose) {
             e.preventDefault();
             return;
         }
-        (emits as any)('pointerDownOutside', e);
+        emits('pointerDownOutside', e);
     }
 </script>

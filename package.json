@@ -12,7 +12,9 @@
     "dev:worker": "npm run worker --workspace=apps/api",
     "build:web": "npm run build --workspace=apps/web",
     "build:api": "npm run build --workspace=apps/api",
-    "lint": "eslint . --fix --ext .ts,.tsx,.vue,.js,.jsx",
+    "lint": "eslint \"apps/**/*.{ts,tsx,vue,js,jsx}\" --fix",
+    "lint:check": "eslint \"apps/**/*.{ts,tsx,vue,js,jsx}\"",
+    "check": "npm run lint:check && npm run build:web && npm run build:api",
     "format": "prettier --write \"apps/**/*.{vue,ts,tsx,js,jsx,css}\"",
     "prepare": "husky || true"
   },

@@ -14,7 +14,7 @@
                         <SelectValue placeholder="All presets" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">All presets</SelectItem>
+                        <SelectItem :value="FilterValue.All">All presets</SelectItem>
                         <SelectItem
                             v-for="preset in availablePresets"
                             :key="preset.id"
@@ -24,9 +24,8 @@
                         </SelectItem>
                     </SelectContent>
                 </Select>
-                <Button size="sm" :disabled="creating" @click="createNew">
-                    <Loader2 v-if="creating" class="size-3.5 mr-1 animate-spin" />
-                    <Plus v-else class="size-3.5 mr-1" />
+                <Button size="sm" @click="createNew">
+                    <Plus class="size-3.5 mr-1" />
                     Create videos
                 </Button>
             </div>
@@ -80,30 +79,23 @@
                         </Badge>
                     </div>
                     <span
-                        v-if="session.audio || session.noAudio"
+                        v-if="
+                            session.audio || session.noAudio || session.presetId === 'music-widget'
+                        "
                         class="flex text-xs text-muted-foreground truncate"
                     >
-                        {{
-                            session.noAudio
-                                ? 'No audio'
-                                : session.audio!.title +
-                                    (session.audio!.artist ? ` – ${session.audio!.artist}` : '')
-                        }}
+                        {{ getSessionAudioLabel(session) }}
                     </span>
                 </div>
 
-                <Badge
+                <PresetBadge
                     v-if="session.preset"
-                    variant="secondary"
-                    class="flex items-center gap-1 shrink-0"
-                >
-                    <span
-                    >{{ session.preset.name }} ({{ formatLabels[session.preset.format] }})</span
-                    >
-                    <component :is="formatIcons[session.preset.format]" class="size-3" />
-                </Badge>
+                    :preset-id="session.preset.id"
+                    :name="session.preset.name"
+                    :format="session.preset.format"
+                />
 
-                <div class="hidden sm:group-hover:flex items-center gap-1 shrink-0">
+                <div class="flex items-center gap-1 shrink-0">
                     <button
                         class="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                         title="Delete"
@@ -157,15 +149,7 @@
 </template>
 
 <script setup lang="ts">
-    import {
-        Clapperboard,
-        Loader2,
-        MoreVertical,
-        Music,
-        Plus,
-        Trash2,
-        VolumeX,
-    } from 'lucide-vue-next';
+    import { Clapperboard, MoreVertical, Music, Plus, Trash2, VolumeX } from 'lucide-vue-next';
     import { computed, onMounted, ref } from 'vue';
     import { useRouter } from 'vue-router';
     import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
@@ -194,20 +178,22 @@
     } from '@/components/ui/select';
     import { Button } from '@/components/ui/button';
     import { Badge } from '@/components/ui/badge';
-    import { formatIcons, formatLabels } from '@/lib/presetFormat';
+    import PresetBadge from '@/components/shared/PresetBadge.vue';
+    import { getSessionAudioLabel } from '@/components/sessions/utils';
     import { useSessionsStore } from '@/stores/sessions';
+    import { getSessionLabel as sessionLabel } from './utils';
     import { usePresetsStore } from '@/stores/presets';
     import type { GenerationSession } from '@/types/session';
+    import { FilterValue } from '@/types/ui';
 
     const sessionsStore = useSessionsStore();
     const presetsStore = usePresetsStore();
     const breadcrumbsComposable = useBreadcrumbs();
     const router = useRouter();
 
-    const filterPresetId = ref('all');
+    const filterPresetId = ref<string | typeof FilterValue.All>(FilterValue.All);
     const deleteOpen = ref(false);
     const deleteSessionId = ref('');
-    const creating = ref(false);
 
     const availablePresets = computed(() => {
         const seen = new Map<string, { id: string; name: string }>();
@@ -220,46 +206,16 @@
     });
 
     const filteredSessions = computed(() => {
-        if (filterPresetId.value === 'all') return sessionsStore.items;
+        if (filterPresetId.value === FilterValue.All) return sessionsStore.items;
         return sessionsStore.items.filter((s) => s.presetId === filterPresetId.value);
     });
-
-    onMounted(async () => {
-        await Promise.all([sessionsStore.fetchAll(), presetsStore.fetchAll()]);
-        breadcrumbsComposable.setBreadcrumbs([{ label: 'Create' }]);
-    });
-
-    function sessionLabel(session: GenerationSession): string {
-        if (session.name) return session.name;
-        return `Session #${session.index}`;
-    }
 
     function openSession(session: GenerationSession) {
         router.push(`/create/${session.id}`);
     }
 
-    async function createNew() {
-        if (creating.value) return;
-        if (!presetsStore.items.length) await presetsStore.fetchAll();
-        const presetId = presetsStore.items[0]?.id;
-        if (!presetId) return;
-        creating.value = true;
-        try {
-            const draft = await sessionsStore.saveDraft({
-                presetId,
-                noAudio: false,
-                assetIds: [],
-                assetSource: 'all',
-                autoAssign: false,
-                durationMs: 0,
-                fadeInMs: 0,
-                fadeOutMs: 0,
-                entries: [],
-            });
-            router.push(`/create/${draft.id}`);
-        } finally {
-            creating.value = false;
-        }
+    function createNew() {
+        router.push('/create/new');
     }
 
     function startDelete(id: string) {
@@ -271,4 +227,9 @@
         await sessionsStore.remove(deleteSessionId.value);
         deleteOpen.value = false;
     }
+
+    onMounted(async () => {
+        await Promise.all([sessionsStore.fetchAll(), presetsStore.fetchAll()]);
+        breadcrumbsComposable.setBreadcrumbs([{ label: 'Create' }]);
+    });
 </script>

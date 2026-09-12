@@ -3,42 +3,12 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { deleteFile, generateSignedUrl } from '../lib/s3';
 import { AuthRequest, requireAuth } from '../middleware/auth';
-import { VIDEO_PRESETS } from '../remotion/presets';
-import { triggerVideoGeneration } from '../generator/dispatch';
+import { triggerBatchVideoGeneration } from '../generator/dispatch';
+import { getPresetDefinition } from '../presets/registry';
+import { applyVideoSignedUrls } from './utils';
 
 const router = Router();
 router.use(requireAuth);
-
-function applySignedUrls(
-    video: {
-        status: string;
-        videoUrl: string | null;
-        thumbnailUrl: string | null;
-        [key: string]: unknown;
-    },
-    userId: string,
-) {
-    return {
-        ...video,
-        videoUrl:
-            video.videoUrl && video.status === 'COMPLETED'
-                ? generateSignedUrl(video.videoUrl, userId, 24 * 3600)
-                : null,
-        thumbnailUrl:
-            video.thumbnailUrl && video.status === 'COMPLETED'
-                ? generateSignedUrl(video.thumbnailUrl, userId, 24 * 3600)
-                : null,
-    };
-}
-
-router.get('/presets', (_req, res: Response) => {
-    const presets = Object.entries(VIDEO_PRESETS).map(([id, p]) => ({
-        id,
-        label: id === 'square_1080' ? '1:1 Square (1080×1080)' : '9:16 Vertical (1080×1920)',
-        ...p,
-    }));
-    res.json(presets);
-});
 
 router.get('/', async (req: AuthRequest, res: Response) => {
     try {
@@ -48,11 +18,23 @@ router.get('/', async (req: AuthRequest, res: Response) => {
             include: {
                 session: { select: { id: true, name: true } },
                 asset: { select: { id: true, url: true, filename: true } },
+                audio: {
+                    select: {
+                        id: true,
+                        title: true,
+                        artist: true,
+                        coverUrl: true,
+                        duration: true,
+                        filename: true,
+                        sourceType: true,
+                        sourceUrl: true,
+                    },
+                },
                 preset: { select: { id: true, name: true, component: true, format: true } },
             },
         });
 
-        res.json(videos.map((v) => applySignedUrls(v, req.userId!)));
+        res.json(videos.map((v) => applyVideoSignedUrls(v, req.userId!)));
     } catch {
         res.status(500).json({ error: 'Internal server error' });
     }
@@ -65,6 +47,18 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
             include: {
                 session: { select: { id: true, name: true } },
                 asset: { select: { id: true, url: true, filename: true } },
+                audio: {
+                    select: {
+                        id: true,
+                        title: true,
+                        artist: true,
+                        coverUrl: true,
+                        duration: true,
+                        filename: true,
+                        sourceType: true,
+                        sourceUrl: true,
+                    },
+                },
                 preset: { select: { id: true, name: true, component: true, format: true } },
             },
         });
@@ -74,7 +68,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
             return;
         }
 
-        res.json(applySignedUrls(video, req.userId!));
+        res.json(applyVideoSignedUrls(video, req.userId!));
     } catch {
         res.status(500).json({ error: 'Internal server error' });
     }
@@ -116,12 +110,26 @@ router.get('/:id/download', async (req: AuthRequest, res: Response) => {
 
 router.patch('/:id', async (req: AuthRequest, res: Response) => {
     try {
-        const { phrase, assetId, choiceLeft, choiceRight, settings } = req.body as {
+        const {
+            phrase,
+            assetId,
+            choiceLeft,
+            choiceRight,
+            settings,
+            audioStartMs,
+            durationMs,
+            audioFadeInMs,
+            audioFadeOutMs,
+        } = req.body as {
             phrase?: string;
             assetId?: string;
             choiceLeft?: string;
             choiceRight?: string;
             settings?: unknown;
+            audioStartMs?: number;
+            durationMs?: number;
+            audioFadeInMs?: number;
+            audioFadeOutMs?: number;
         };
 
         if (
@@ -129,7 +137,11 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
             !assetId &&
             choiceLeft == null &&
             choiceRight == null &&
-            settings === undefined
+            settings === undefined &&
+            audioStartMs === undefined &&
+            durationMs === undefined &&
+            audioFadeInMs === undefined &&
+            audioFadeOutMs === undefined
         ) {
             res.status(400).json({ error: 'at least one field to update is required' });
             return;
@@ -142,6 +154,23 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
 
         if (!video) {
             res.status(404).json({ error: 'Video not found' });
+            return;
+        }
+
+        const preset = getPresetDefinition(video.preset.id);
+        if (preset.workflow?.requeueVideo) {
+            const result = await preset.workflow.requeueVideo(video, req.userId!, {
+                settings,
+                audioStartMs,
+                durationMs,
+                audioFadeInMs,
+                audioFadeOutMs,
+            });
+            if (!result.ok) {
+                res.status(result.status).json({ error: result.error });
+                return;
+            }
+            res.json(result.video);
             return;
         }
 
@@ -208,18 +237,7 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
             },
         });
 
-        await triggerVideoGeneration({
-            videoId: updated.id,
-            phrase: updated.phrase,
-            presetComponent: video.preset.component,
-            sourceImageUrl,
-            sourceAudioUrl,
-            durationMs: updated.durationMs,
-            fadeInMs: updated.fadeInMs,
-            fadeOutMs: updated.fadeOutMs,
-            settings: updated.settings ?? undefined,
-            userId: updated.userId,
-        });
+        await triggerBatchVideoGeneration([updated.id]);
 
         res.json(updated);
     } catch {

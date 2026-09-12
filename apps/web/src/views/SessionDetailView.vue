@@ -7,7 +7,7 @@
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div class="flex items-center gap-3 min-w-0">
                 <div
-                    v-if="session.audio || session.noAudio"
+                    v-if="session.audio || session.noAudio || session.presetId === 'music-widget'"
                     class="relative size-9 rounded-md bg-muted shrink-0 overflow-hidden flex items-center justify-center"
                 >
                     <img
@@ -19,28 +19,14 @@
                     <Music v-else class="size-4 text-muted-foreground" />
                 </div>
                 <div class="min-w-0">
-                    <!-- Mobile: session name as title -->
                     <h2 class="text-xl font-semibold truncate sm:hidden">{{ sessionTitle }}</h2>
-                    <!-- Desktop: audio title -->
                     <p class="text-sm font-medium truncate hidden sm:block">
-                        {{
-                            session.noAudio
-                                ? 'No audio'
-                                : (session.audio?.title ?? 'No audio track')
-                        }}
+                        {{ getSessionAudioLabel(session, session.videos.length) }}
                     </p>
                     <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
                         <span class="text-xs text-muted-foreground truncate sm:hidden">
-                            {{
-                                session.noAudio
-                                    ? 'No audio'
-                                    : session.audio
-                                        ? session.audio.title +
-                                            (session.audio.artist ? ' – ' + session.audio.artist : '')
-                                        : 'No audio track'
-                            }}
+                            {{ getSessionAudioLabel(session, session.videos.length) }}
                         </span>
-                        <!-- Desktop: artist -->
                         <span
                             v-if="!session.noAudio && session.audio?.artist"
                             class="text-xs text-muted-foreground truncate hidden sm:block"
@@ -52,46 +38,30 @@
             </div>
 
             <div class="flex flex-wrap items-center justify-end gap-2">
-                <Badge
+                <PresetBadge
                     v-if="session.preset"
-                    variant="secondary"
-                    class="flex items-center gap-1 shrink-0"
-                >
-                    <span
-                    >{{ session.preset.name }} ({{ formatLabels[session.preset.format] }})</span
-                    >
-                    <component :is="formatIcons[session.preset.format]" class="size-3" />
-                </Badge>
+                    :preset-id="session.preset.id"
+                    :name="session.preset.name"
+                    :format="session.preset.format"
+                />
                 <template v-if="selectionIntent">
-                    <Button size="sm" variant="ghost" @click="toggleSelectAll">
-                        {{ allSelected ? 'Deselect all' : 'Select all' }}
-                    </Button>
-                    <Button
-                        v-if="selectionIntent === 'download'"
-                        size="sm"
-                        variant="outline"
-                        :disabled="downloading || !selectedIds.length"
-                        @click="downloadSelected"
-                    >
-                        <Loader2 v-if="downloading" class="size-3.5 mr-1 animate-spin" />
-                        <Download v-else class="size-3.5 mr-1" />
-                        Download{{ selectedIds.length ? ` (${selectedIds.length})` : '' }}
-                    </Button>
-                    <Button
-                        v-else
-                        size="sm"
-                        variant="outline"
-                        class="text-destructive hover:text-destructive"
-                        :disabled="!selectedIds.length"
-                        @click="bulkDeleteOpen = true"
-                    >
-                        <Trash2 class="size-3.5 mr-1" />
-                        Delete{{ selectedIds.length ? ` (${selectedIds.length})` : '' }}
-                    </Button>
-                    <Button size="sm" variant="ghost" @click="exitSelection">Cancel</Button>
+                    <BulkSelectionActions
+                        :intent="selectionIntent"
+                        :selected-count="selectedIds.length"
+                        :all-selected="allSelected"
+                        :downloading="downloading"
+                        @toggle-all="toggleSelectAll"
+                        @download="downloadSelected"
+                        @delete="bulkDeleteOpen = true"
+                        @cancel="exitSelection"
+                    />
                 </template>
                 <template v-else-if="completedVideos.length">
-                    <Button size="sm" variant="outline" @click="startSelection('download')">
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        @click="startSelection(SelectionIntent.Download)"
+                    >
                         <Download class="size-3.5 mr-1" />
                         Download
                     </Button>
@@ -99,7 +69,7 @@
                         size="sm"
                         variant="outline"
                         class="text-destructive hover:text-destructive"
-                        @click="startSelection('delete')"
+                        @click="startSelection(SelectionIntent.Delete)"
                     >
                         <Trash2 class="size-3.5 mr-1" />
                         Delete
@@ -121,7 +91,7 @@
                 v-for="video in sortedVideos"
                 :key="video.id"
                 :video="video"
-                :selectable="!!selectionIntent && video.status === 'COMPLETED'"
+                :selectable="!!selectionIntent && video.status === VideoStatus.Completed"
                 :selected="selectedIds.includes(video.id)"
                 @click="openVideo(video)"
                 @toggle-select="toggleSelect(video.id)"
@@ -145,7 +115,7 @@
 
     <VideoLightbox
         :open="videoDialogOpen"
-        :items="completedVideos.map((v) => ({ src: v.videoUrl!, phrase: v.phrase, videoId: v.id }))"
+        :items="completedVideos.map((v) => ({ src: v.videoUrl!, phrase: v.title, videoId: v.id }))"
         :initial-index="completedVideos.findIndex((v) => v.id === activeVideo?.id)"
         @update:open="videoDialogOpen = $event"
     />
@@ -200,8 +170,8 @@
     import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
     import { Download, Film, Loader2, Music, Trash2, VolumeX } from 'lucide-vue-next';
     import { downloadVideoFile } from '@/lib/utils';
-    import { Badge } from '@/components/ui/badge';
-    import { formatIcons, formatLabels } from '@/lib/presetFormat';
+    import { getSessionAudioLabel } from '@/components/sessions/utils';
+    import PresetBadge from '@/components/shared/PresetBadge.vue';
     import {
         AlertDialog,
         AlertDialogAction,
@@ -212,12 +182,15 @@
         AlertDialogHeader,
         AlertDialogTitle,
     } from '@/components/ui/alert-dialog';
-    import VideoEditDialog from '@/components/VideoEditDialog.vue';
-    import VideoLightbox from '@/components/VideoLightbox.vue';
-    import VideoListItem from '@/components/VideoListItem.vue';
+    import VideoEditDialog from '@/components/videos/VideoEditDialog.vue';
+    import VideoLightbox from '@/components/videos/VideoLightbox.vue';
+    import VideoListItem from '@/components/videos/VideoListItem.vue';
+    import BulkSelectionActions from '@/components/shared/BulkSelectionActions.vue';
+    import { useVideoSelection } from '@/composables/useVideoSelection';
     import { useSessionsStore } from '@/stores/sessions';
     import { useVideosStore } from '@/stores/videos';
-    import type { Video } from '@/types/video';
+    import { VideoStatus, type Video } from '@/types/video';
+    import { SelectionIntent } from '@/types/ui';
     import Button from '@/components/ui/button/Button.vue';
 
     const route = useRoute();
@@ -229,17 +202,18 @@
     const session = computed(() => sessionsStore.current!);
     const sessionTitle = computed(() => session.value.name || `Session #${session.value.index}`);
 
-    const STATUS_ORDER: Record<string, number> = {
-        QUEUED: 0,
-        GENERATING: 1,
-        COMPLETED: 2,
-        FAILED: 2,
+    const STATUS_ORDER: Record<VideoStatus, number> = {
+        [VideoStatus.Draft]: 0,
+        [VideoStatus.Queued]: 0,
+        [VideoStatus.Generating]: 1,
+        [VideoStatus.Completed]: 2,
+        [VideoStatus.Failed]: 2,
     };
 
     const sortedVideos = computed(() => {
         if (!session.value?.videos) return [];
         return [...session.value.videos]
-            .filter((v) => v.status !== 'DRAFT')
+            .filter((v) => v.status !== VideoStatus.Draft)
             .sort((a, b) => {
                 const od = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
                 if (od !== 0) return od;
@@ -248,9 +222,11 @@
     });
 
     const completedVideos = computed(
-        () => session.value?.videos?.filter((v) => v.status === 'COMPLETED' && v.videoUrl) ?? [],
+        () =>
+            session.value?.videos?.filter(
+                (v) => v.status === VideoStatus.Completed && v.videoUrl,
+            ) ?? [],
     );
-    const downloading = ref(false);
     const videoDialogOpen = ref(false);
     const deleteVideoOpen = ref(false);
     const editDialogOpen = ref(false);
@@ -258,51 +234,21 @@
     const editVideo = ref<Video | null>(null);
     const deleteVideoId = ref('');
 
-    const selectionIntent = ref<'download' | 'delete' | null>(null);
-    const selectedIds = ref<string[]>([]);
     const bulkDeleteOpen = ref(false);
-
-    const allSelected = computed(
-        () =>
-            completedVideos.value.length > 0 &&
-            selectedIds.value.length === completedVideos.value.length,
-    );
-
-    function startSelection(intent: 'download' | 'delete') {
-        selectionIntent.value = intent;
-        selectedIds.value = [];
-    }
-
-    function exitSelection() {
-        selectionIntent.value = null;
-        selectedIds.value = [];
-    }
-
-    function toggleSelect(id: string) {
-        const idx = selectedIds.value.indexOf(id);
-        if (idx === -1) selectedIds.value.push(id);
-        else selectedIds.value.splice(idx, 1);
-    }
-
-    function toggleSelectAll() {
-        if (allSelected.value) selectedIds.value = [];
-        else selectedIds.value = completedVideos.value.map((v) => v.id);
-    }
+    const {
+        allSelected,
+        downloadSelected: downloadSelectedVideos,
+        downloading,
+        exitSelection,
+        selectedIds,
+        selectionIntent,
+        startSelection,
+        toggleSelect,
+        toggleSelectAll,
+    } = useVideoSelection(completedVideos);
 
     async function downloadSelected() {
-        if (downloading.value) return;
-        const targets = completedVideos.value.filter((v) => selectedIds.value.includes(v.id));
-        if (!targets.length) return;
-        downloading.value = true;
-        try {
-            for (const video of targets) {
-                await downloadVideoFile(video.id, video.phrase);
-                await new Promise((r) => setTimeout(r, 300));
-            }
-        } finally {
-            downloading.value = false;
-            exitSelection();
-        }
+        await downloadSelectedVideos((video) => downloadVideoFile(video.id, video.title));
     }
 
     async function doBulkDelete() {
@@ -315,6 +261,32 @@
             );
         }
         exitSelection();
+    }
+
+    function openVideo(video: Video) {
+        if (video.status !== VideoStatus.Completed) return;
+        activeVideo.value = video;
+        videoDialogOpen.value = true;
+    }
+
+    function startDelete(id: string) {
+        deleteVideoId.value = id;
+        deleteVideoOpen.value = true;
+    }
+
+    function openEditDialog(video: Video) {
+        editVideo.value = video;
+        editDialogOpen.value = true;
+    }
+
+    async function doDeleteVideo() {
+        await videosStore.remove(deleteVideoId.value);
+        if (sessionsStore.current) {
+            sessionsStore.current.videos = sessionsStore.current.videos.filter(
+                (v) => v.id !== deleteVideoId.value,
+            );
+        }
+        deleteVideoOpen.value = false;
     }
 
     onMounted(async () => {
@@ -339,30 +311,4 @@
     onUnmounted(() => {
         sessionsStore.stopPolling();
     });
-
-    function openVideo(video: Video) {
-        if (video.status !== 'COMPLETED') return;
-        activeVideo.value = video;
-        videoDialogOpen.value = true;
-    }
-
-    function startDelete(id: string) {
-        deleteVideoId.value = id;
-        deleteVideoOpen.value = true;
-    }
-
-    function openEditDialog(video: Video) {
-        editVideo.value = video;
-        editDialogOpen.value = true;
-    }
-
-    async function doDeleteVideo() {
-        await videosStore.remove(deleteVideoId.value);
-        if (sessionsStore.current) {
-            sessionsStore.current.videos = sessionsStore.current.videos.filter(
-                (v) => v.id !== deleteVideoId.value,
-            );
-        }
-        deleteVideoOpen.value = false;
-    }
 </script>

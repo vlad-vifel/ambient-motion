@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { usePlayerStore } from './player';
 import api from '@/lib/api';
+import type { AudioSourceType } from '@/types/audio';
 
 export interface Audio {
     id: string;
@@ -12,6 +13,10 @@ export interface Audio {
     duration: number;
     url: string;
     uploadedAt: string;
+    sourceType: AudioSourceType;
+    sourceUrl: string | null;
+    externalTrackId: string | null;
+    externalDurationMs: number | null;
 }
 
 export const useAudioStore = defineStore('audio', () => {
@@ -33,6 +38,29 @@ export const useAudioStore = defineStore('audio', () => {
         uploading.value = true;
         try {
             const { data } = await api.post<Audio>('/api/audio', form, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            items.value.unshift(data);
+            usePlayerStore().setPlaylist(items.value);
+            return data;
+        } finally {
+            uploading.value = false;
+        }
+    }
+
+    async function lookupSpotify(sourceUrl: string) {
+        const { data } = await api.post<{
+            lookupToken: string;
+            track: { title: string; artist: string; durationMs: number; sourceUrl: string };
+            cover: { url: string | null; requiresManualUpload: boolean };
+        }>('/api/audio/spotify/lookup', { sourceUrl });
+        return data;
+    }
+
+    async function importSpotify(form: FormData) {
+        uploading.value = true;
+        try {
+            const { data } = await api.post<Audio>('/api/audio/spotify', form, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
             items.value.unshift(data);
@@ -68,5 +96,16 @@ export const useAudioStore = defineStore('audio', () => {
         player.setPlaylist(items.value);
     }
 
-    return { items, loading, uploading, fetchAll, upload, save, rename, remove };
+    return {
+        items,
+        loading,
+        uploading,
+        fetchAll,
+        upload,
+        lookupSpotify,
+        importSpotify,
+        save,
+        rename,
+        remove,
+    };
 });

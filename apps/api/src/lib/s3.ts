@@ -44,7 +44,7 @@ export async function deleteFile(key: string, userId: string): Promise<void> {
     }
 }
 
-export function getCDNUrl(key: string, userId: string): string {
+function getCDNUrl(key: string, userId: string): string {
     return `https://${CDN_DOMAIN}/${userId}/${key}`;
 }
 

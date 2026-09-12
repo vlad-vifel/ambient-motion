@@ -1,0 +1,11 @@
+{
+  "workspaces": {
+    "apps/api": {
+      "entry": ["src/generator/worker-main.ts", "src/remotion/index.ts"],
+      "project": ["src/**/*.{ts,tsx}"]
+    },
+    "apps/web": {
+      "project": ["src/**/*.{css,ts,vue}"]
+    }
+  }
+}

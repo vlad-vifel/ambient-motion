@@ -59,6 +59,10 @@ model Audio {
   coverUrl      String?
   duration      Float    @default(0)
   url           String
+  sourceType    AudioSourceType @default(UPLOAD)
+  sourceUrl     String?
+  externalTrackId String?
+  externalDurationMs Int?
   uploadedAt    DateTime @default(now())
 
   userId String
@@ -72,9 +76,9 @@ model GenerationSession {
   id          String   @id @default(cuid())
   name        String?
   index       Int      @default(0)
-  durationMs  Int
-  fadeInMs    Int      @default(0)
-  fadeOutMs   Int      @default(0)
+  durationMs  Int?
+  fadeInMs    Int?     @default(0)
+  fadeOutMs   Int?     @default(0)
   isDraft     Boolean  @default(false)
   assetSource String?
   autoAssign  Boolean  @default(false)
@@ -137,6 +141,9 @@ model Video {
   durationMs  Int    @default(30000)
   fadeInMs    Int    @default(0)
   fadeOutMs   Int    @default(0)
+  audioStartMs Int   @default(0)
+  audioFadeInMs Int  @default(0)
+  audioFadeOutMs Int @default(0)
   choiceLeft  String?
   choiceRight String?
   settings    Json?
@@ -155,6 +162,11 @@ enum VideoStatus {
   GENERATING
   COMPLETED
   FAILED
+}
+
+enum AudioSourceType {
+  UPLOAD
+  SPOTIFY
 }
 
 enum VideoFormat {

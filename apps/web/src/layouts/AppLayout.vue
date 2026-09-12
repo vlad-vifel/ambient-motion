@@ -45,8 +45,8 @@
 <script setup lang="ts">
     import { computed } from 'vue';
     import { useRoute } from 'vue-router';
-    import AppSidebar from '@/components/AppSidebar.vue';
-    import AudioPlayer from '@/components/AudioPlayer.vue';
+    import AppSidebar from '@/components/layout/AppSidebar.vue';
+    import AudioPlayer from '@/components/audio/AudioPlayer.vue';
     import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
     import {
         Breadcrumb,

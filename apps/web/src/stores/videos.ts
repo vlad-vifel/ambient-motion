@@ -1,8 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import api from '@/lib/api';
-import type { Video } from '@/types/video';
-import type { RpgSettings } from '@/types/rpgSettings';
+import { VideoStatus, type Video } from '@/types/video';
 
 export const useVideosStore = defineStore('videos', () => {
     const items = ref<Video[]>([]);
@@ -31,7 +30,11 @@ export const useVideosStore = defineStore('videos', () => {
             assetId?: string;
             choiceLeft?: string;
             choiceRight?: string;
-            settings?: RpgSettings;
+            settings?: unknown;
+            audioStartMs?: number;
+            durationMs?: number;
+            audioFadeInMs?: number;
+            audioFadeOutMs?: number;
         },
     ) {
         const { data } = await api.patch<Video>(`/api/videos/${id}`, updates);
@@ -40,7 +43,9 @@ export const useVideosStore = defineStore('videos', () => {
     }
 
     function hasActiveJobs(): boolean {
-        return items.value.some((v) => v.status === 'QUEUED' || v.status === 'GENERATING');
+        return items.value.some(
+            (v) => v.status === VideoStatus.Queued || v.status === VideoStatus.Generating,
+        );
     }
 
     function startPolling(intervalMs = 3000) {

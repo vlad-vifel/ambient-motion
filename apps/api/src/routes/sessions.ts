@@ -2,8 +2,11 @@ import { Response, Router } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { generateSignedUrl } from '../lib/s3';
+import { applyVideoSignedUrls } from './utils';
 import { AuthRequest, requireAuth } from '../middleware/auth';
 import { triggerBatchVideoGeneration } from '../generator/dispatch';
+import { getPresetDefinition, hasPresetDefinition } from '../presets/registry';
+import { PresetAssetSource } from '../presets/types';
 
 const router = Router();
 router.use(requireAuth);
@@ -26,28 +29,45 @@ router.get('/', async (req: AuthRequest, res: Response) => {
             },
         });
 
-        const statusCounts = await Promise.all(
-            sessions.map(async (s) => {
-                const counts = await prisma.video.groupBy({
-                    by: ['status'],
-                    where: { sessionId: s.id, status: { not: 'DRAFT' } },
-                    _count: true,
-                });
-                return { sessionId: s.id, counts };
-            }),
+        const statusCounts = sessions.length
+            ? await prisma.video.groupBy({
+                  by: ['sessionId', 'status'],
+                  where: {
+                      sessionId: { in: sessions.map((session) => session.id) },
+                      status: { not: 'DRAFT' },
+                  },
+                  _count: true,
+              })
+            : [];
+        const trackCounts = sessions.length
+            ? await prisma.video.groupBy({
+                  by: ['sessionId'],
+                  where: { sessionId: { in: sessions.map((session) => session.id) } },
+                  _count: true,
+              })
+            : [];
+        const trackCountBySession = new Map(
+            trackCounts
+                .filter((count) => count.sessionId)
+                .map((count) => [count.sessionId!, count._count]),
         );
-
-        const countMap = new Map(statusCounts.map((c) => [c.sessionId, c.counts]));
+        const countsBySession = new Map<string, Map<string, number>>();
+        for (const count of statusCounts) {
+            if (!count.sessionId) continue;
+            const counts = countsBySession.get(count.sessionId) ?? new Map<string, number>();
+            counts.set(count.status, count._count);
+            countsBySession.set(count.sessionId, counts);
+        }
 
         const result = sessions.map((s) => {
-            const counts = countMap.get(s.id) ?? [];
+            const counts = countsBySession.get(s.id);
             const videoCounts = {
-                queued: counts.find((c) => c.status === 'QUEUED')?._count ?? 0,
-                generating: counts.find((c) => c.status === 'GENERATING')?._count ?? 0,
-                completed: counts.find((c) => c.status === 'COMPLETED')?._count ?? 0,
-                failed: counts.find((c) => c.status === 'FAILED')?._count ?? 0,
+                queued: counts?.get('QUEUED') ?? 0,
+                generating: counts?.get('GENERATING') ?? 0,
+                completed: counts?.get('COMPLETED') ?? 0,
+                failed: counts?.get('FAILED') ?? 0,
             };
-            return { ...s, videoCounts };
+            return { ...s, trackCount: trackCountBySession.get(s.id) ?? 0, videoCounts };
         });
 
         res.json(result);
@@ -70,7 +90,13 @@ router.post('/', async (req: AuthRequest, res: Response) => {
                 presetId: string;
             };
 
-        if ((!audioId && !noAudio) || !assetIds?.length || durationMs == null || !presetId) {
+        if (
+            (!audioId && !noAudio) ||
+            !assetIds?.length ||
+            durationMs == null ||
+            !presetId ||
+            !hasPresetDefinition(presetId)
+        ) {
             res.status(400).json({
                 error: 'audioId (or noAudio), assetIds, durationMs and presetId are required',
             });
@@ -160,15 +186,26 @@ router.post('/draft', async (req: AuthRequest, res: Response) => {
                 choiceRight?: string | null;
                 assetId?: string | null;
                 settings?: unknown;
+                audioId?: string;
+                trimStartMs?: number;
+                trimEndMs?: number;
+                audioFadeInMs?: number;
+                audioFadeOutMs?: number;
             }[];
         };
 
-        if (!presetId || durationMs == null) {
+        if (!presetId || !hasPresetDefinition(presetId)) {
+            res.status(400).json({ error: 'presetId is required' });
+            return;
+        }
+        const preset = getPresetDefinition(presetId);
+        const usesDedicatedAssetSource = preset.assetSource === PresetAssetSource.AudioCover;
+        if (!usesDedicatedAssetSource && durationMs == null) {
             res.status(400).json({ error: 'presetId and durationMs are required' });
             return;
         }
 
-        const ids = assetIds ?? [];
+        const ids = usesDedicatedAssetSource ? [] : (assetIds ?? []);
         if (ids.length) {
             const owned = await prisma.asset.count({
                 where: { id: { in: ids }, userId: req.userId! },
@@ -179,7 +216,7 @@ router.post('/draft', async (req: AuthRequest, res: Response) => {
             }
         }
 
-        if (!noAudio && audioId) {
+        if (!usesDedicatedAssetSource && !noAudio && audioId) {
             const audio = await prisma.audio.findFirst({
                 where: { id: audioId, userId: req.userId! },
             });
@@ -190,35 +227,46 @@ router.post('/draft', async (req: AuthRequest, res: Response) => {
         }
 
         const phraseEntries = entries ?? [];
-        const validEntryAssetIds = new Set(ids);
-        const draftVideosData = phraseEntries.map((e) => ({
-            title: e.phrase,
-            phrase: e.phrase,
-            choiceLeft: e.choiceLeft ?? null,
-            choiceRight: e.choiceRight ?? null,
-            settings: (e.settings ?? undefined) as Prisma.InputJsonValue | undefined,
-            status: 'DRAFT' as const,
-            presetId,
-            assetId: e.assetId && validEntryAssetIds.has(e.assetId) ? e.assetId : null,
-            sourceImageUrl: '',
-            audioId: noAudio ? null : (audioId ?? null),
-            noAudio: noAudio ?? false,
-            sourceAudioUrl: '',
-            durationMs,
-            fadeInMs: fadeInMs ?? 0,
-            fadeOutMs: fadeOutMs ?? 0,
-            userId: req.userId!,
-        }));
+        let draftVideosData: Prisma.VideoCreateManyInput[];
+        if (preset.workflow?.prepareDraft) {
+            const result = await preset.workflow.prepareDraft(phraseEntries, req.userId!);
+            if (!result.ok) {
+                res.status(400).json({ error: result.error });
+                return;
+            }
+            draftVideosData = result.videos;
+        } else {
+            const validEntryAssetIds = new Set(ids);
+            draftVideosData = phraseEntries.map((entry) => ({
+                title: entry.phrase,
+                phrase: entry.phrase,
+                choiceLeft: entry.choiceLeft ?? null,
+                choiceRight: entry.choiceRight ?? null,
+                settings: (entry.settings ?? undefined) as Prisma.InputJsonValue | undefined,
+                status: 'DRAFT',
+                presetId,
+                assetId:
+                    entry.assetId && validEntryAssetIds.has(entry.assetId) ? entry.assetId : null,
+                sourceImageUrl: '',
+                audioId: noAudio ? null : (audioId ?? null),
+                noAudio: noAudio ?? false,
+                sourceAudioUrl: '',
+                durationMs,
+                fadeInMs: fadeInMs ?? 0,
+                fadeOutMs: fadeOutMs ?? 0,
+                userId: req.userId!,
+            }));
+        }
 
         const sessionData = {
             name: name ?? null,
-            durationMs,
-            fadeInMs: fadeInMs ?? 0,
-            fadeOutMs: fadeOutMs ?? 0,
+            durationMs: usesDedicatedAssetSource ? null : durationMs,
+            fadeInMs: usesDedicatedAssetSource ? null : (fadeInMs ?? 0),
+            fadeOutMs: usesDedicatedAssetSource ? null : (fadeOutMs ?? 0),
             assetSource: assetSource ?? null,
             autoAssign: autoAssign ?? false,
-            audioId: noAudio ? null : (audioId ?? null),
-            noAudio: noAudio ?? false,
+            audioId: usesDedicatedAssetSource ? null : noAudio ? null : (audioId ?? null),
+            noAudio: usesDedicatedAssetSource ? false : (noAudio ?? false),
             presetId,
         };
 
@@ -299,6 +347,18 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
                     orderBy: { createdAt: 'desc' },
                     include: {
                         asset: { select: { id: true, url: true, filename: true } },
+                        audio: {
+                            select: {
+                                id: true,
+                                title: true,
+                                artist: true,
+                                coverUrl: true,
+                                duration: true,
+                                filename: true,
+                                sourceType: true,
+                                sourceUrl: true,
+                            },
+                        },
                         preset: { select: { id: true, name: true, component: true, format: true } },
                     },
                 },
@@ -310,17 +370,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
             return;
         }
 
-        const videosWithUrls = session.videos.map((v) => ({
-            ...v,
-            videoUrl:
-                v.videoUrl && v.status === 'COMPLETED'
-                    ? generateSignedUrl(v.videoUrl, req.userId!, 24 * 3600)
-                    : null,
-            thumbnailUrl:
-                v.thumbnailUrl && v.status === 'COMPLETED'
-                    ? generateSignedUrl(v.thumbnailUrl, req.userId!, 24 * 3600)
-                    : null,
-        }));
+        const videosWithUrls = session.videos.map((v) => applyVideoSignedUrls(v, req.userId!));
 
         res.json({ ...session, videos: videosWithUrls });
     } catch {
@@ -409,6 +459,21 @@ router.post('/:id/generate', async (req: AuthRequest, res: Response) => {
             return;
         }
 
+        const preset = getPresetDefinition(session.preset.id);
+        if (preset.workflow?.queueSession) {
+            const result = await preset.workflow.queueSession(
+                session.id,
+                req.userId!,
+                session.isDraft,
+            );
+            if (!result.ok) {
+                res.status(400).json({ error: result.error });
+                return;
+            }
+            res.status(201).json({ jobs: result.jobs });
+            return;
+        }
+
         if (!session.noAudio && !session.audio) {
             res.status(400).json({ error: 'Session audio has been deleted' });
             return;
@@ -479,9 +544,9 @@ router.post('/:id/generate', async (req: AuthRequest, res: Response) => {
                     audioId: session.audioId,
                     noAudio: session.noAudio,
                     sourceAudioUrl,
-                    durationMs: session.durationMs,
-                    fadeInMs: session.fadeInMs,
-                    fadeOutMs: session.fadeOutMs,
+                    durationMs: session.durationMs ?? 30000,
+                    fadeInMs: session.fadeInMs ?? 0,
+                    fadeOutMs: session.fadeOutMs ?? 0,
                     userId: req.userId!,
                 },
             });
