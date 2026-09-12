@@ -37,6 +37,7 @@
     const step = ref<1 | 2>(1);
     watch(step, (value) => emit('step-change', value), { immediate: true });
     const draftId = ref<string | null>(null);
+    const populating = ref(false);
     const submitting = ref(false);
     const error = ref('');
 
@@ -67,6 +68,24 @@
             })),
         };
     }
+
+    let saveTimer: ReturnType<typeof setTimeout> | null = null;
+
+    function scheduleDraftSave() {
+        if (populating.value || submitting.value || !draftId.value) return;
+        if (saveTimer) clearTimeout(saveTimer);
+        saveTimer = setTimeout(async () => {
+            saveTimer = null;
+            if (populating.value || submitting.value || !draftId.value) return;
+            try {
+                await sessionsStore.saveDraft(buildDraftPayload());
+            } catch {
+                return;
+            }
+        }, 800);
+    }
+
+    watch(entries, scheduleDraftSave, { deep: true });
 
     async function submit() {
         if (!entries.value.length || submitting.value) return;
@@ -99,17 +118,22 @@
             sessionsStore.current?.id === sessionId
                 ? sessionsStore.current
                 : await sessionsStore.fetchOne(sessionId);
-        draftId.value = session.id;
-        entries.value = (session.videos ?? [])
-            .filter((video) => Boolean(video.audioId))
-            .map((video) => ({
-                audioId: video.audioId!,
-                trimStartMs: video.audioStartMs ?? 0,
-                trimEndMs: (video.audioStartMs ?? 0) + video.durationMs,
-                audioFadeInMs: video.audioFadeInMs ?? 0,
-                audioFadeOutMs: video.audioFadeOutMs ?? 0,
-                settings: video.settings as MusicWidgetEntry['settings'],
-            }));
-        step.value = entries.value.length ? 2 : 1;
+        populating.value = true;
+        try {
+            draftId.value = session.id;
+            entries.value = (session.videos ?? [])
+                .filter((video) => Boolean(video.audioId))
+                .map((video) => ({
+                    audioId: video.audioId!,
+                    trimStartMs: video.audioStartMs ?? 0,
+                    trimEndMs: (video.audioStartMs ?? 0) + video.durationMs,
+                    audioFadeInMs: video.audioFadeInMs ?? 0,
+                    audioFadeOutMs: video.audioFadeOutMs ?? 0,
+                    settings: video.settings as MusicWidgetEntry['settings'],
+                }));
+            step.value = entries.value.length ? 2 : 1;
+        } finally {
+            populating.value = false;
+        }
     });
 </script>

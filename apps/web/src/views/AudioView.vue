@@ -16,6 +16,7 @@
                     />
                 </template>
                 <template v-else>
+                    <ViewModeToggle v-model="viewMode" />
                     <Select v-model="filterSourceType">
                         <SelectTrigger class="h-8! w-36 text-sm">
                             <SelectValue placeholder="All sources" />
@@ -26,7 +27,6 @@
                             <SelectItem :value="AudioSourceType.Upload">Uploaded</SelectItem>
                         </SelectContent>
                     </Select>
-                    <ViewModeToggle v-model="viewMode" />
                     <Button
                         v-if="audioStore.items.length"
                         size="sm"

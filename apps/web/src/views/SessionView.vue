@@ -26,6 +26,11 @@
     );
 
     async function load() {
+        if (sessionsStore.current?.id === sessionId.value) {
+            loading.value = false;
+            return;
+        }
+
         loading.value = true;
         try {
             await sessionsStore.fetchOne(sessionId.value);

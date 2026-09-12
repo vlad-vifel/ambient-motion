@@ -95,7 +95,7 @@
                     :format="session.preset.format"
                 />
 
-                <div class="flex items-center gap-1 shrink-0">
+                <div class="hidden items-center gap-1 shrink-0 sm:flex">
                     <button
                         class="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                         title="Delete"

@@ -18,7 +18,7 @@
             <Badge v-if="asset.isUsed" variant="secondary" class="text-xs">used</Badge>
             <span class="text-xs text-muted-foreground">{{ formatFileSize(asset.size) }}</span>
         </div>
-        <div v-if="!selectionMode" class="flex shrink-0 items-center gap-1">
+        <div v-if="!selectionMode" class="hidden shrink-0 items-center gap-1 sm:flex">
             <button class="item-action" title="Rename" @click.stop="emit('edit')">
                 <Pencil class="size-3.5" />
             </button>

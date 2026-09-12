@@ -30,11 +30,19 @@
             <p class="text-sm font-medium truncate">{{ video.title }}</p>
         </div>
 
+        <span v-if="showPreset && video.preset" class="hidden sm:inline-flex">
+            <PresetBadge
+                :preset-id="video.preset.id"
+                :name="video.preset.name"
+                :format="video.preset.format"
+            />
+        </span>
+
         <span :class="['text-xs px-2 py-0.5 rounded-full shrink-0', statusClass(video.status)]">
             {{ statusLabel(video.status) }}
         </span>
 
-        <div v-if="!selectable" class="flex items-center gap-0.5 shrink-0">
+        <div v-if="!selectable" class="hidden items-center gap-0.5 shrink-0 sm:flex">
             <button
                 :disabled="!canDownload"
                 class="p-1.5 rounded text-muted-foreground transition-colors enabled:hover:bg-muted enabled:hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
@@ -111,6 +119,7 @@
         DropdownMenuTrigger,
     } from '@/components/ui/dropdown-menu';
     import { Checkbox } from '@/components/ui/checkbox';
+    import PresetBadge from '@/components/shared/PresetBadge.vue';
     import { downloadVideoFile } from '@/lib/utils';
     import {
         getVideoStatusClass as statusClass,
@@ -122,6 +131,7 @@
     const props = withDefaults(defineProps<VideoListItemProps>(), {
         selectable: false,
         selected: false,
+        showPreset: true,
     });
 
     defineEmits<VideoListItemEmits>();

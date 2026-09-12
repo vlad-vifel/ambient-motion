@@ -8,7 +8,7 @@
             <FolderIcon class="size-4 text-muted-foreground" />
         </div>
         <p class="min-w-0 flex-1 truncate text-sm font-medium">{{ folder.name }}</p>
-        <div class="flex shrink-0 items-center gap-1">
+        <div class="hidden shrink-0 items-center gap-1 sm:flex">
             <button class="item-action" title="Rename" @click.stop="emit('rename')">
                 <Pencil class="size-3.5" />
             </button>

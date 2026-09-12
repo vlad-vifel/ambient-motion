@@ -23,6 +23,7 @@ export interface VideoListItemProps {
     video: Video;
     selectable?: boolean;
     selected?: boolean;
+    showPreset?: boolean;
 }
 
 export interface VideoListItemEmits {

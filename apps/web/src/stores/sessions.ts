@@ -70,6 +70,7 @@ export const useSessionsStore = defineStore('sessions', () => {
         const idx = items.value.findIndex((s) => s.id === data.id);
         if (idx !== -1) items.value[idx] = { ...items.value[idx], ...data };
         else items.value.unshift(data);
+        current.value = data;
         return data;
     }
 

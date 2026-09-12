@@ -47,7 +47,7 @@
         <span class="shrink-0 text-xs text-muted-foreground">{{
             formatAudioDuration(track.duration)
         }}</span>
-        <div v-if="!selectionMode" class="flex shrink-0 items-center gap-1">
+        <div v-if="!selectionMode" class="hidden shrink-0 items-center gap-1 sm:flex">
             <button class="item-action" title="Edit" @click.stop="emit('edit')">
                 <Pencil class="size-3.5" /></button
             ><button class="item-delete-action" title="Delete" @click.stop="emit('delete')">
@@ -121,7 +121,7 @@
                     @click.stop
                 >Spotify</a
                 ><span v-else />
-                <div v-if="!selectionMode" class="flex shrink-0 items-center gap-0.5">
+                <div v-if="!selectionMode" class="hidden shrink-0 items-center gap-0.5 sm:flex">
                     <button class="item-action" title="Edit" @click.stop="emit('edit')">
                         <Pencil class="size-3.5" /></button
                     ><button class="item-delete-action" title="Delete" @click.stop="emit('delete')">

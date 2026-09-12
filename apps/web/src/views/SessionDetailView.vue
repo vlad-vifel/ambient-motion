@@ -91,6 +91,7 @@
                 v-for="video in sortedVideos"
                 :key="video.id"
                 :video="video"
+                :show-preset="false"
                 :selectable="!!selectionIntent && video.status === VideoStatus.Completed"
                 :selected="selectedIds.includes(video.id)"
                 @click="openVideo(video)"

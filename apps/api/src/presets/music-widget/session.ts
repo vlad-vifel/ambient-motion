@@ -22,6 +22,7 @@ export async function prepareMusicWidgetDraft(
     entries: MusicWidgetDraftEntry[],
     userId: string,
 ): Promise<MusicWidgetDraftResult> {
+    if (entries.length === 0) return { ok: true, videos: [] };
     if (entries.length < 1 || entries.length > 10) {
         return { ok: false, error: 'Music Widget requires between 1 and 10 Spotify tracks' };
     }

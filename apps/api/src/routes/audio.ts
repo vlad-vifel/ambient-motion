@@ -175,7 +175,10 @@ router.post('/spotify/lookup', async (req: AuthRequest, res: Response) => {
             }
         ).props?.pageProps?.state?.data?.entity;
         const title = entity?.title ?? entity?.name;
-        const artist = entity?.artists?.[0]?.name ?? '';
+        const artists = (entity?.artists ?? [])
+            .map((item) => item.name?.trim() ?? '')
+            .filter(Boolean);
+        const artist = artists.join(', ');
         const durationMs = entity?.duration;
         if (!title || !artist || !durationMs)
             throw new Error('Spotify track metadata is incomplete');

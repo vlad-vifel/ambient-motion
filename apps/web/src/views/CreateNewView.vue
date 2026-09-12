@@ -49,6 +49,7 @@
     const presetsStore = usePresetsStore();
     const sessionsStore = useSessionsStore();
     const ready = ref(false);
+    const creatingDraft = ref(false);
     const presetId = ref('');
     const creationStep = ref<1 | 2>(1);
     const presetDefinition = computed(() => getPresetDefinition(presetId.value));
@@ -67,8 +68,27 @@
         }),
     );
 
-    watch(presetId, () => {
+    watch(presetId, async (value, previousValue) => {
         creationStep.value = 1;
+        if (!value || previousValue || route.params.id || creatingDraft.value) return;
+
+        creatingDraft.value = true;
+        try {
+            const draft = await sessionsStore.saveDraft({
+                presetId: value,
+                noAudio: false,
+                assetIds: [],
+                assetSource: 'all',
+                autoAssign: false,
+                durationMs: 0,
+                fadeInMs: 0,
+                fadeOutMs: 0,
+                entries: [],
+            });
+            await router.replace(`/create/${draft.id}`);
+        } finally {
+            creatingDraft.value = false;
+        }
     });
 
     function updateCreationStep(step: 1 | 2) {
