@@ -11,7 +11,21 @@ async function runBatch(): Promise<void> {
         orderBy: { createdAt: 'asc' },
         select: { id: true },
     });
-    for (const video of videos) await processVideo(video.id);
+    const foundIds = new Set(videos.map((video) => video.id));
+    const missingIds = videoIds.filter((videoId) => !foundIds.has(videoId));
+    if (missingIds.length) {
+        throw new Error(`Batch contains ${missingIds.length} unknown video id(s)`);
+    }
+
+    console.log(`[Generator] Processing ${videos.length} video(s)`);
+    let failedCount = 0;
+    for (const video of videos) {
+        if (!(await processVideo(video.id))) failedCount += 1;
+    }
+    if (failedCount) {
+        throw new Error(`${failedCount} of ${videos.length} video(s) failed`);
+    }
+    console.log(`[Generator] Completed ${videos.length} video(s)`);
 }
 
 runBatch()
