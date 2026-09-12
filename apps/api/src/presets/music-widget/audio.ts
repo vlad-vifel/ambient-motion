@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import ffmpegStatic from 'ffmpeg-static';
 
-const ffmpeg = ffmpegStatic || 'ffmpeg';
+const ffmpeg = process.env.FFMPEG_PATH || ffmpegStatic || 'ffmpeg';
 
 function runFfmpeg(args: string[]): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -12,12 +12,13 @@ function runFfmpeg(args: string[]): Promise<void> {
             stderr += chunk.toString();
         });
         process.once('error', reject);
-        process.once('close', (code) => {
+        process.once('close', (code, signal) => {
             if (code === 0) {
                 resolve();
                 return;
             }
-            reject(new Error(`FFmpeg exited with code ${code}: ${stderr.slice(-1000)}`));
+            const reason = signal ? `signal ${signal}` : `code ${code}`;
+            reject(new Error(`FFmpeg exited with ${reason}: ${stderr.slice(-1000)}`));
         });
     });
 }

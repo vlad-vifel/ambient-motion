@@ -41,6 +41,7 @@ jobs:
           SUFY_CDN_DOMAIN: ${{ secrets.SUFY_CDN_DOMAIN }}
           SUFY_URL_SIGNING_KEY: ${{ secrets.SUFY_URL_SIGNING_KEY }}
           REMOTION_GL: swiftshader
+          FFMPEG_PATH: /usr/bin/ffmpeg
           VIDEO_IDS: ${{ toJson(github.event.client_payload.videoIds) }}
         run: npx ts-node -P tsconfig.json src/generator/run-batch.ts
         working-directory: apps/api

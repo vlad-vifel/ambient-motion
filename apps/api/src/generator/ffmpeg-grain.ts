@@ -10,7 +10,7 @@ export async function cropCenterSquare(
     outputPath: string,
     size: number,
 ): Promise<void> {
-    const ffmpeg = ffmpegStatic || 'ffmpeg';
+    const ffmpeg = process.env.FFMPEG_PATH || ffmpegStatic || 'ffmpeg';
     await execAsync(
         `"${ffmpeg}" -y -i "${inputPath}" -vf "crop=${size}:${size}:(iw-${size})/2:(ih-${size})/2" "${outputPath}"`,
         {
@@ -21,7 +21,7 @@ export async function cropCenterSquare(
 
 export async function applyGrainFilter(inputPath: string, outputPath: string): Promise<void> {
     const tmpPath = `${outputPath}.tmp.mp4`;
-    const ffmpeg = ffmpegStatic || 'ffmpeg';
+    const ffmpeg = process.env.FFMPEG_PATH || ffmpegStatic || 'ffmpeg';
 
     try {
         await execAsync(

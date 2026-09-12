@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import ffmpegStatic from 'ffmpeg-static';
 
-const ffmpeg = ffmpegStatic || 'ffmpeg';
+const ffmpeg = process.env.FFMPEG_PATH || ffmpegStatic || 'ffmpeg';
 
 export function renderThumbnail({
     videoPath,
