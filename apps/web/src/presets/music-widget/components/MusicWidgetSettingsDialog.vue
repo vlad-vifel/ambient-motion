@@ -145,7 +145,7 @@
                                 ><NumberField
                                     v-model="localEntry.settings.overallBrightness"
                                     :min="0"
-                                    :max="120"
+                                    :max="150"
                                     :step="5"
                                     class="w-28"
                                 ><NumberFieldContent
@@ -157,7 +157,7 @@
                                 ><NumberField
                                     v-model="localEntry.settings.contrast"
                                     :min="0"
-                                    :max="200"
+                                    :max="150"
                                     :step="5"
                                     class="w-28"
                                 ><NumberFieldContent

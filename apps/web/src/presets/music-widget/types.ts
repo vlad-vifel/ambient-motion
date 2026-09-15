@@ -63,7 +63,7 @@ export interface MusicWidgetSettingsDialogEmits {
 export const defaultMusicWidgetSettings = (): MusicWidgetSettings => ({
     overallBrightness: 100,
     watermarkBrightness: 100,
-    backgroundBrightness: 80,
+    backgroundBrightness: 100,
     contrast: 100,
     watermarkEnabled: true,
     watermarkText: 'ambient mode',
