@@ -14,8 +14,8 @@
 </template>
 
 <script setup lang="ts">
-    import { onMounted, ref, watch } from 'vue';
-    import { useRoute, useRouter } from 'vue-router';
+    import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
+    import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router';
     import MusicWidgetCreate from '@/presets/music-widget/components/MusicWidgetCreate.vue';
     import type {
         MusicWidgetCreateFlowProps,
@@ -70,19 +70,51 @@
     }
 
     let saveTimer: ReturnType<typeof setTimeout> | null = null;
+    let savePromise: Promise<void> | null = null;
+    let draftDirty = false;
 
     function scheduleDraftSave() {
         if (populating.value || submitting.value || !draftId.value) return;
+        draftDirty = true;
         if (saveTimer) clearTimeout(saveTimer);
-        saveTimer = setTimeout(async () => {
+        saveTimer = setTimeout(() => {
             saveTimer = null;
-            if (populating.value || submitting.value || !draftId.value) return;
-            try {
-                await sessionsStore.saveDraft(buildDraftPayload());
-            } catch {
-                return;
-            }
+            void persistDraft();
         }, 800);
+    }
+
+    async function persistDraft() {
+        if (populating.value || submitting.value || !draftId.value || !draftDirty || savePromise) {
+            return savePromise ?? undefined;
+        }
+
+        savePromise = (async () => {
+            while (draftDirty && !populating.value && !submitting.value && draftId.value) {
+                draftDirty = false;
+                try {
+                    await sessionsStore.saveDraft(buildDraftPayload());
+                    error.value = '';
+                } catch (reason: unknown) {
+                    draftDirty = true;
+                    error.value = getApiErrorMessage(reason, 'Failed to save the draft');
+                    return;
+                }
+            }
+        })();
+
+        try {
+            await savePromise;
+        } finally {
+            savePromise = null;
+        }
+    }
+
+    async function flushDraftSave() {
+        if (saveTimer) {
+            clearTimeout(saveTimer);
+            saveTimer = null;
+        }
+        await persistDraft();
     }
 
     watch(entries, scheduleDraftSave, { deep: true });
@@ -135,5 +167,10 @@
         } finally {
             populating.value = false;
         }
+    });
+
+    onBeforeRouteLeave(flushDraftSave);
+    onBeforeUnmount(() => {
+        void flushDraftSave();
     });
 </script>

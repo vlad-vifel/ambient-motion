@@ -11,6 +11,49 @@ import { PresetAssetSource } from '../presets/types';
 const router = Router();
 router.use(requireAuth);
 
+const sessionDetailsInclude = {
+    audio: true,
+    assets: { include: { asset: true } },
+    preset: { select: { id: true, name: true, component: true, format: true } },
+    videos: {
+        orderBy: { createdAt: 'desc' },
+        include: {
+            asset: { select: { id: true, url: true, filename: true } },
+            audio: {
+                select: {
+                    id: true,
+                    title: true,
+                    artist: true,
+                    coverUrl: true,
+                    duration: true,
+                    filename: true,
+                    sourceType: true,
+                    sourceUrl: true,
+                },
+            },
+            preset: { select: { id: true, name: true, component: true, format: true } },
+        },
+    },
+} satisfies Prisma.GenerationSessionInclude;
+
+type SessionDetails = Prisma.GenerationSessionGetPayload<{
+    include: typeof sessionDetailsInclude;
+}>;
+
+async function findSessionDetails(id: string, userId: string) {
+    return prisma.generationSession.findFirst({
+        where: { id, userId },
+        include: sessionDetailsInclude,
+    });
+}
+
+function applySessionVideoUrls(session: SessionDetails, userId: string) {
+    return {
+        ...session,
+        videos: session.videos.map((video) => applyVideoSignedUrls(video, userId)),
+    };
+}
+
 router.get('/', async (req: AuthRequest, res: Response) => {
     try {
         const sessions = await prisma.generationSession.findMany({
@@ -323,17 +366,14 @@ router.post('/draft', async (req: AuthRequest, res: Response) => {
             sessionId = created.id;
         }
 
-        const session = await prisma.generationSession.findFirst({
-            where: { id: sessionId },
-            include: {
-                audio: {
-                    select: { id: true, title: true, artist: true, coverUrl: true, duration: true },
-                },
-                preset: { select: { id: true, name: true, component: true, format: true } },
-            },
-        });
+        const session = await findSessionDetails(sessionId!, req.userId!);
 
-        res.status(id ? 200 : 201).json(session);
+        if (!session) {
+            res.status(404).json({ error: 'Draft not found' });
+            return;
+        }
+
+        res.status(id ? 200 : 201).json(applySessionVideoUrls(session, req.userId!));
     } catch {
         res.status(500).json({ error: 'Internal server error' });
     }
@@ -341,42 +381,14 @@ router.post('/draft', async (req: AuthRequest, res: Response) => {
 
 router.get('/:id', async (req: AuthRequest, res: Response) => {
     try {
-        const session = await prisma.generationSession.findFirst({
-            where: { id: String(req.params.id), userId: req.userId! },
-            include: {
-                audio: true,
-                assets: { include: { asset: true } },
-                preset: { select: { id: true, name: true, component: true, format: true } },
-                videos: {
-                    orderBy: { createdAt: 'desc' },
-                    include: {
-                        asset: { select: { id: true, url: true, filename: true } },
-                        audio: {
-                            select: {
-                                id: true,
-                                title: true,
-                                artist: true,
-                                coverUrl: true,
-                                duration: true,
-                                filename: true,
-                                sourceType: true,
-                                sourceUrl: true,
-                            },
-                        },
-                        preset: { select: { id: true, name: true, component: true, format: true } },
-                    },
-                },
-            },
-        });
+        const session = await findSessionDetails(String(req.params.id), req.userId!);
 
         if (!session) {
             res.status(404).json({ error: 'Session not found' });
             return;
         }
 
-        const videosWithUrls = session.videos.map((v) => applyVideoSignedUrls(v, req.userId!));
-
-        res.json({ ...session, videos: videosWithUrls });
+        res.json(applySessionVideoUrls(session, req.userId!));
     } catch {
         res.status(500).json({ error: 'Internal server error' });
     }
