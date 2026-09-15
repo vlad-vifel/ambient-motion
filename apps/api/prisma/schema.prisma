@@ -88,8 +88,8 @@ model GenerationSession {
   audio   Audio?  @relation(fields: [audioId], references: [id], onDelete: SetNull)
   noAudio Boolean @default(false)
 
-  presetId String
-  preset   VideoPreset @relation(fields: [presetId], references: [id])
+  presetId String?
+  preset   VideoPreset? @relation(fields: [presetId], references: [id])
 
   assets SessionAsset[]
   videos Video[]

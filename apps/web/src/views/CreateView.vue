@@ -24,8 +24,9 @@
                         </SelectItem>
                     </SelectContent>
                 </Select>
-                <Button size="sm" @click="createNew">
-                    <Plus class="size-3.5 mr-1" />
+                <Button size="sm" :disabled="creatingDraft" @click="createNew">
+                    <Loader2 v-if="creatingDraft" class="size-3.5 mr-1 animate-spin" />
+                    <Plus v-else class="size-3.5 mr-1" />
                     Create videos
                 </Button>
             </div>
@@ -149,7 +150,15 @@
 </template>
 
 <script setup lang="ts">
-    import { Clapperboard, MoreVertical, Music, Plus, Trash2, VolumeX } from 'lucide-vue-next';
+    import {
+        Clapperboard,
+        Loader2,
+        MoreVertical,
+        Music,
+        Plus,
+        Trash2,
+        VolumeX,
+    } from 'lucide-vue-next';
     import { computed, onMounted, ref } from 'vue';
     import { useRouter } from 'vue-router';
     import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
@@ -194,6 +203,7 @@
     const filterPresetId = ref<string | typeof FilterValue.All>(FilterValue.All);
     const deleteOpen = ref(false);
     const deleteSessionId = ref('');
+    const creatingDraft = ref(false);
 
     const availablePresets = computed(() => {
         const seen = new Map<string, { id: string; name: string }>();
@@ -214,8 +224,27 @@
         router.push(`/create/${session.id}`);
     }
 
-    function createNew() {
-        router.push('/create/new');
+    async function createNew() {
+        if (creatingDraft.value) return;
+        creatingDraft.value = true;
+        try {
+            const draft = await sessionsStore.saveDraft({
+                presetId: null,
+                noAudio: false,
+                assetIds: [],
+                assetSource: 'all',
+                autoAssign: false,
+                durationMs: 0,
+                fadeInMs: 0,
+                fadeOutMs: 0,
+                entries: [],
+            });
+            await router.push(`/create/${draft.id}`);
+        } catch (error) {
+            console.error('[Create] Failed to create draft:', error);
+        } finally {
+            creatingDraft.value = false;
+        }
     }
 
     function startDelete(id: string) {

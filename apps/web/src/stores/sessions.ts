@@ -52,7 +52,7 @@ export const useSessionsStore = defineStore('sessions', () => {
         durationMs: number;
         fadeInMs: number;
         fadeOutMs: number;
-        presetId: string;
+        presetId?: string | null;
         entries: {
             phrase: string;
             choiceLeft?: string | null;

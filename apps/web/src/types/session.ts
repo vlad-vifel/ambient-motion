@@ -21,7 +21,7 @@ export interface GenerationSession {
     audioId: string | null;
     audio?: Audio | null;
     noAudio: boolean;
-    presetId: string;
+    presetId: string | null;
     trackCount?: number;
     preset?: { id: string; name: string; component: string; format: string } | null;
     assets: SessionAssetEntry[];

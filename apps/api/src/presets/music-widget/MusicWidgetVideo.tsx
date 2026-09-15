@@ -93,7 +93,6 @@ export const MusicWidgetVideo: React.FC<MusicWidgetVideoProps> = ({
                 style={{
                     filter: `contrast(${contrast / 100}) brightness(${Math.max(1, overallBrightness / 100)})`,
                     fontWeight: 600,
-                    letterSpacing: '0.02em',
                 }}
             >
                 <AbsoluteFill
@@ -161,12 +160,12 @@ export const MusicWidgetVideo: React.FC<MusicWidgetVideoProps> = ({
                     style={{
                         position: 'absolute',
                         left: 185,
-                        top: 1218,
+                        top: 1214,
                         width: 710,
                         textAlign: 'center',
                         color: '#fff',
                         fontFamily: 'MusicWidgetMontserrat, sans-serif',
-                        fontSize: 30,
+                        fontSize: 35,
                         fontWeight: 600,
                         lineHeight: 1.25,
                         whiteSpace: 'nowrap',

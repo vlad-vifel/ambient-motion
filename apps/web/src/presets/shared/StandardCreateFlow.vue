@@ -667,7 +667,7 @@
                     ? sessionsStore.current
                     : await sessionsStore.fetchOne(id);
             draftId.value = session.id;
-            form.presetId = session.presetId;
+            form.presetId = session.presetId ?? '';
             form.assetSource = session.assetSource ?? FilterValue.All;
             autoAssign.value = session.autoAssign ?? false;
             if (session.noAudio) {

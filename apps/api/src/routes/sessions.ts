@@ -179,7 +179,7 @@ router.post('/draft', async (req: AuthRequest, res: Response) => {
             durationMs: number;
             fadeInMs?: number;
             fadeOutMs?: number;
-            presetId: string;
+            presetId?: string | null;
             entries?: {
                 phrase: string;
                 choiceLeft?: string | null;
@@ -194,12 +194,12 @@ router.post('/draft', async (req: AuthRequest, res: Response) => {
             }[];
         };
 
-        if (!presetId || !hasPresetDefinition(presetId)) {
-            res.status(400).json({ error: 'presetId is required' });
+        if (presetId != null && !hasPresetDefinition(presetId)) {
+            res.status(400).json({ error: 'Invalid presetId' });
             return;
         }
-        const preset = getPresetDefinition(presetId);
-        const usesDedicatedAssetSource = preset.assetSource === PresetAssetSource.AudioCover;
+        const preset = presetId ? getPresetDefinition(presetId) : null;
+        const usesDedicatedAssetSource = preset?.assetSource === PresetAssetSource.AudioCover;
         if (!usesDedicatedAssetSource && durationMs == null) {
             res.status(400).json({ error: 'presetId and durationMs are required' });
             return;
@@ -227,8 +227,12 @@ router.post('/draft', async (req: AuthRequest, res: Response) => {
         }
 
         const phraseEntries = entries ?? [];
+        if (!preset && phraseEntries.length) {
+            res.status(400).json({ error: 'presetId is required when entries are provided' });
+            return;
+        }
         let draftVideosData: Prisma.VideoCreateManyInput[];
-        if (preset.workflow?.prepareDraft) {
+        if (preset?.workflow?.prepareDraft) {
             const result = await preset.workflow.prepareDraft(phraseEntries, req.userId!);
             if (!result.ok) {
                 res.status(400).json({ error: result.error });
@@ -244,7 +248,7 @@ router.post('/draft', async (req: AuthRequest, res: Response) => {
                 choiceRight: entry.choiceRight ?? null,
                 settings: (entry.settings ?? undefined) as Prisma.InputJsonValue | undefined,
                 status: 'DRAFT',
-                presetId,
+                presetId: presetId as string,
                 assetId:
                     entry.assetId && validEntryAssetIds.has(entry.assetId) ? entry.assetId : null,
                 sourceImageUrl: '',
@@ -267,7 +271,7 @@ router.post('/draft', async (req: AuthRequest, res: Response) => {
             autoAssign: autoAssign ?? false,
             audioId: usesDedicatedAssetSource ? null : noAudio ? null : (audioId ?? null),
             noAudio: usesDedicatedAssetSource ? false : (noAudio ?? false),
-            presetId,
+            presetId: presetId ?? null,
         };
 
         let sessionId = id;
@@ -459,7 +463,13 @@ router.post('/:id/generate', async (req: AuthRequest, res: Response) => {
             return;
         }
 
+        if (!session.preset || !session.presetId) {
+            res.status(400).json({ error: 'Select a preset before generating videos' });
+            return;
+        }
+
         const preset = getPresetDefinition(session.preset.id);
+        const sessionPresetId = session.presetId;
         if (preset.workflow?.queueSession) {
             const result = await preset.workflow.queueSession(
                 session.id,
@@ -538,7 +548,7 @@ router.post('/:id/generate', async (req: AuthRequest, res: Response) => {
                     settings: (settings ?? undefined) as Prisma.InputJsonValue | undefined,
                     status: 'QUEUED',
                     sessionId: session.id,
-                    presetId: session.presetId,
+                    presetId: sessionPresetId,
                     assetId: assetRecord.id,
                     sourceImageUrl,
                     audioId: session.audioId,

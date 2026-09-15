@@ -27,7 +27,7 @@
             class="absolute left-[171px] top-[445px] size-[738px] rounded-[18px] object-cover"
         />
         <div
-            class="absolute left-[185px] top-[1218px] w-[710px] truncate text-center text-[30px] font-semibold leading-tight text-white"
+            class="absolute left-[185px] top-[1214px] w-[710px] truncate text-center text-[35px] font-semibold leading-tight text-white"
         >
             {{ track.title }}
         </div>
@@ -104,7 +104,6 @@
         color: #fff;
         font-family: 'MusicWidgetMontserrat', sans-serif;
         font-weight: 600;
-        letter-spacing: 0.02em;
         transform: translateZ(0);
     }
 </style>

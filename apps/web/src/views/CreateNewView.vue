@@ -70,7 +70,41 @@
 
     watch(presetId, async (value, previousValue) => {
         creationStep.value = 1;
-        if (!value || previousValue || route.params.id || creatingDraft.value) return;
+        if (!value || creatingDraft.value) return;
+
+        const sessionId = route.params.id as string | undefined;
+        const currentSession = sessionsStore.current;
+        if (sessionId) {
+            if (
+                !currentSession ||
+                currentSession.id !== sessionId ||
+                currentSession.presetId === value
+            ) {
+                return;
+            }
+
+            creatingDraft.value = true;
+            try {
+                await sessionsStore.saveDraft({
+                    id: sessionId,
+                    presetId: value,
+                    noAudio: currentSession.noAudio,
+                    audioId: currentSession.audioId ?? undefined,
+                    assetIds: currentSession.assets.map(({ assetId }) => assetId),
+                    assetSource: currentSession.assetSource ?? undefined,
+                    autoAssign: currentSession.autoAssign ?? false,
+                    durationMs: currentSession.durationMs ?? 0,
+                    fadeInMs: currentSession.fadeInMs ?? 0,
+                    fadeOutMs: currentSession.fadeOutMs ?? 0,
+                    entries: [],
+                });
+            } finally {
+                creatingDraft.value = false;
+            }
+            return;
+        }
+
+        if (previousValue) return;
 
         creatingDraft.value = true;
         try {
@@ -108,7 +142,7 @@
                 sessionsStore.current?.id === sessionId
                     ? sessionsStore.current
                     : await sessionsStore.fetchOne(sessionId);
-            presetId.value = session.presetId;
+            presetId.value = session.presetId ?? '';
         }
         ready.value = true;
     });
